@@ -1,0 +1,58 @@
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    platform: linux/amd64
+    container_name: raased-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: raased
+      POSTGRES_PASSWORD: raased
+      POSTGRES_DB: raased
+    ports:
+      - "5432:5432"
+    volumes:
+      - raased-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U raased"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    platform: linux/amd64
+    build:
+      context: ..
+      dockerfile: infra/docker/backend.Dockerfile
+    container_name: raased-backend
+    restart: unless-stopped
+    env_file:
+      - ../backend/.env.example
+    environment:
+      DATABASE_URL: postgresql+asyncpg://raased:raased@db:5432/raased
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ../backend:/app
+
+  frontend:
+    platform: linux/amd64
+    build:
+      context: ..
+      dockerfile: infra/docker/frontend.Dockerfile
+    container_name: raased-frontend
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000/api/v1
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    volumes:
+      - ../frontend:/app
+      - /app/node_modules
+
+volumes:
+  raased-db-data:

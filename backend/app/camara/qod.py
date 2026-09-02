@@ -132,8 +132,30 @@ async def extend_qod_session(
         return await client.post(endpoint, json=payload)
     except CamaraAPIError as exc:
         if retry_on_404 and exc.status_code == 404:
+            # TODO : remplacer ce log par une écriture dans la table
+            # Compliance & Audit Log une fois le schéma disponible, pour que
+            # chaque retry soit traçable dans l'historique d'audit décisionnel
+            # de l'agent, pas seulement dans les logs applicatifs.
+            logger.warning(
+                "QoD extend() 404 on first attempt for session_id=%s "
+                "(known sandbox instability, ~1/6 observed empirically). "
+                "Retrying once after 1s.",
+                session_id,
+            )
             await asyncio.sleep(1.0)
-            return await client.post(endpoint, json=payload)
+            try:
+                result = await client.post(endpoint, json=payload)
+                logger.info(
+                    "QoD extend() retry succeeded for session_id=%s", session_id
+                )
+                return result
+            except CamaraAPIError as retry_exc:
+                logger.error(
+                    "QoD extend() retry ALSO failed for session_id=%s: %s",
+                    session_id,
+                    retry_exc.detail,
+                )
+                raise
         raise
 
 

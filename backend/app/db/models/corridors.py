@@ -32,6 +32,7 @@ class Corridor(Base):
     risk_zones: Mapped[list["RiskZone"]] = relationship(back_populates="corridor")
     baselines: Mapped[list["CorridorCongestionBaseline"]] = relationship(back_populates="corridor")
     congestion_events: Mapped[list["CongestionEvent"]] = relationship(back_populates="corridor")
+    risk_assessments: Mapped[list["RiskAssessment"]] = relationship(back_populates="corridor")
     original_route_suggestions: Mapped[list["RouteSuggestion"]] = relationship(
         back_populates="original_corridor",
         foreign_keys="RouteSuggestion.original_corridor_id",

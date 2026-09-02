@@ -17,8 +17,9 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql+asyncpg://raased:raased@localhost:5432/raased"
 
     # --- CAMARA / Nokia Network-as-Code ---
-    CAMARA_BASE_URL: str = "https://network-as-code.p-eu.rapidapi.com"
+    CAMARA_BASE_URL: str = "https://network-as-code.p-eu.apihub.nokia.io"
     CAMARA_API_KEY: str = "CHANGE_ME"
+    CAMARA_API_HOST: str = "network-as-code.nokia.rapidapi.com"
     CAMARA_SANDBOX_MODE: bool = True
 
     # --- LLM providers (agent reasoning layer) ---

@@ -30,7 +30,7 @@ class Settings(BaseSettings):
 
     # --- Agent thresholds (business rules, deterministic layer) ---
     CONGESTION_ALERT_THRESHOLD: float = 0.7
-    CONGESTION_CONFIDENCE_MIN: float = 0.6
+    CONGESTION_CONFIDENCE_MIN: int = 40
     FALSE_POSITIVE_MAX_RATE: float = 0.15
 
     # --- Security ---

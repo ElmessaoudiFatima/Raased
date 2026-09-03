@@ -24,4 +24,6 @@ async def create_org_manager(payload: ManagerCreate, db: AsyncSession = Depends(
         email=payload.email,
         password=payload.password,
     )
+    await db.commit()       
+    await db.refresh(manager)
     return manager

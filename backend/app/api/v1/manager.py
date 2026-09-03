@@ -7,7 +7,10 @@ from app.schemas.auth import DriverCreate, UserOut
 from app.services.auth_service import create_driver
 from app.db.models.users import User
 
-router = APIRouter(prefix="/manager", tags=["manager"], dependencies=[Depends(require_role("MANAGER"))])
+router = APIRouter(
+    prefix="/manager",
+    tags=["manager"],
+)
 
 
 @router.post("/drivers", response_model=UserOut)
@@ -16,7 +19,6 @@ async def create_org_driver(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role("MANAGER")),
 ):
-    # organization_id imposé = celle du manager connecté, jamais depuis le body
     driver = await create_driver(
         db,
         organization_id=current_user.organization_id,
@@ -24,4 +26,8 @@ async def create_org_driver(
         email=payload.email,
         password=payload.password,
     )
+
+    await db.commit()
+    await db.refresh(driver)
+
     return driver

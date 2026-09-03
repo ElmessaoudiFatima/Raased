@@ -19,7 +19,7 @@ async def authenticate_user(db: AsyncSession, email: str, password: str) -> User
 async def create_organization(db: AsyncSession, name: str) -> Organization:
 	organization = Organization(name=name)
 	db.add(organization)
-	await db.flush()
+	await db.commit()   
 	await db.refresh(organization)
 	return organization
 

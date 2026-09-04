@@ -39,6 +39,59 @@ inadapté à une démonstration live synchrone. QoD (section qod.py) reste
 l'action réseau démontrée en direct. Slicing est présenté comme capacité
 validée en sandbox (cycle CRUD complet fonctionnel), pas comme scénario
 temps réel devant jury.
+
+---
+
+DEVICE ATTACH (device-attach/v0) — TESTÉ, NON VALIDÉ (résultat empirique).
+
+Endpoint distinct de Network Slicing lui-même (/device-attach/v0/...
+vs /slice/v1/...), regroupé dans ce fichier car ces fonctions sont
+inutilisables sans un sliceId produit par create_slice() ci-dessus.
+
+RÉSOLU : sliceId = `name` (UUID), PAS csi_id.
+Confirmé sur 3 tentatives distinctes : csi_id renvoie systématiquement
+un 422 string_pattern_mismatch (même erreur de format que get_slice,
+l'underscore viole le pattern Nokia). `name` est toujours accepté
+structurellement (jamais rejeté sur le format), cohérent avec le reste
+du cycle de vie de la slice.
+
+NON RÉSOLU après 5 tests empiriques (voir historique de session,
+_manual_test_attach.py supprimé après tests) : aucun état de la slice
+testé ne permet un attach_device() réussi.
+    - state=PENDING  -> 409 "Slice is in invalid state for subscriber
+                        management operations."
+    - state=AVAILABLE (atteint et confirmé à 2 reprises, ~90-120s)
+                     -> 409 IDENTIQUE, même message exact
+    - activate_slice() appelé sur AVAILABLE -> réponse {"status":
+      "Accepted"}, mais aucun changement d'état observé sur 210s de
+      polling post-activation (state reste "AVAILABLE" dans get_slice)
+    - manage_subscriber() comme étape préalable -> jamais testé
+      jusqu'au bout : le timing PENDING->AVAILABLE s'est révélé encore
+      plus variable que documenté (2 runs sur 5 n'ont pas atteint
+      AVAILABLE même après 210-225s), empêchant d'atteindre cette
+      étape du protocole de test dans le temps disponible.
+
+HYPOTHÈSES NON ÉLIMINÉES, À REPRENDRE SI LE TEMPS LE PERMET :
+    1. manage_subscriber() (POST .../subscribers/create) pourrait être
+       un prérequis avant attach_device() -- le message d'erreur répété
+       ("invalid state for SUBSCRIBER MANAGEMENT operations") est un
+       indice non exploité en faveur de cette piste.
+    2. Un état intermédiaire non documenté (ex: "ACTIVE" avec un délai
+       propre après activate_slice(), distinct du délai PENDING->
+       AVAILABLE) pourrait exister mais n'a pas pu être observé --
+       210s de polling post-activation n'ont montré aucun changement,
+       mais on ne peut pas exclure un délai encore plus long.
+    3. Le payload attach_device() (customer/mobile_services/
+       traffic_categories, valeurs par défaut de l'exemple Nokia)
+       n'a jamais été testé avec des valeurs alternatives -- possible
+       qu'un champ soit incorrect indépendamment de l'état de la slice.
+
+DÉCISION : non bloquant pour la Phase 1 (cf. Explication_API.pdf,
+section 9, Priorité 3). QoD reste l'action réseau démontrée en direct.
+Network Slicing est présenté au jury comme capacité validée en sandbox
+pour son cycle de vie CRUD principal (create/get/activate/deactivate/
+delete), PAS comme scénario d'attachement device-à-slice fonctionnel
+-- formulation honnête à conserver dans toute présentation.
 """
 
 from typing import Any
@@ -46,7 +99,13 @@ from typing import Any
 from app.camara.client import get_camara_client
 
 SLICE_BASE_PATH = "/slice/v1/slices"
+DEVICE_ATTACH_BASE_PATH = "/device-attach/v0/attachments"
+DEVICE_ATTACH_SUBSCRIBER_PATH = "/device-attach/v0/attachments/subscribers/create"
 
+
+# ============================================================
+# NETWORK SLICING — cycle CRUD (validé empiriquement)
+# ============================================================
 
 async def create_slice(payload: dict[str, Any]) -> dict[str, Any]:
     """
@@ -114,3 +173,141 @@ async def delete_slice(slice_id: str) -> dict[str, Any]:
     """
     client = get_camara_client()
     return await client.delete(f"{SLICE_BASE_PATH}/{slice_id}", json={})
+
+
+# ============================================================
+# DEVICE ATTACH — TESTÉ, NON VALIDÉ (résultat empirique)
+# ============================================================
+
+async def attach_device(
+    phone_number: str,
+    imsi: int,
+    slice_id: str,
+    customer_name: str = "DefaultAttachOperationCustomer",
+    customer_description: str = "I Am Default Who Order The Device Attach Operation",
+    customer_address: str = "Dummy Customer Address",
+    customer_contact: str = "My Contact Should Be Here",
+    mobile_services: list[str] | None = None,
+    traffic_app_os: str = "09078034-07db-4b13-a970-ab80235f7369",
+    traffic_apps: list[str] | None = None,
+    notification_url: str = "https://application-server.com",
+    notification_auth_token: str = "c8974e592fa383d4a396071",
+) -> dict[str, Any]:
+    """
+    POST /device-attach/v0/attachments
+
+    Payload structurellement identique à l'exemple curl Nokia fourni
+    par le playground RapidAPI. slice_id : voir résolution dans le
+    docstring module — `name` (UUID) confirmé comme sliceId correct.
+    """
+    client = get_camara_client()
+    payload = {
+        "device": {"phoneNumber": phone_number, "imsi": imsi},
+        "customer": {
+            "name": customer_name,
+            "description": customer_description,
+            "address": customer_address,
+            "contact": customer_contact,
+        },
+        "sliceId": slice_id,
+        "mobile_services": mobile_services or ["Voice", "Voicemail", "5G-Data"],
+        "traffic_categories": {
+            "apps": {
+                "os": traffic_app_os,
+                "apps": traffic_apps or ["Daedalus"],
+            }
+        },
+        "webhook": {
+            "notificationUrl": notification_url,
+            "notificationAuthToken": notification_auth_token,
+        },
+    }
+    return await client.post(DEVICE_ATTACH_BASE_PATH, json=payload)
+
+
+async def detach_device(attachment_id: str) -> dict[str, Any]:
+    """
+    DELETE /device-attach/v0/attachments/{attachment_id}
+
+    attachment_id : identifiant DISTINCT du sliceId (csi_id/name),
+    généré par Nokia à la création de l'attachment lui-même — voir
+    inconnue #5 en tête de fichier, nom exact du champ à confirmer
+    dans la réponse de attach_device().
+
+    Body vide explicite ({}), reproduction fidèle de l'exemple curl
+    Nokia (--data '{}'), même pattern que delete_slice() ci-dessus.
+    """
+    client = get_camara_client()
+    return await client.delete(f"{DEVICE_ATTACH_BASE_PATH}/{attachment_id}", json={})
+
+
+async def get_all_attachments_status() -> Any:
+    """
+    GET /device-attach/v0/attachments
+
+    Type de retour non confirmé (dict englobant ou liste brute) — le
+    précédent avec get_all_slices() a surpris en renvoyant une liste
+    brute plutôt qu'un dict. À vérifier empiriquement avant de figer
+    un type de retour strict ici.
+    """
+    client = get_camara_client()
+    return await client.get(DEVICE_ATTACH_BASE_PATH)
+
+
+async def get_attachment_status(attachment_id: str) -> dict[str, Any]:
+    """GET /device-attach/v0/attachments/{attachment_id}"""
+    client = get_camara_client()
+    return await client.get(f"{DEVICE_ATTACH_BASE_PATH}/{attachment_id}")
+
+
+async def manage_subscriber(
+    phone_number: str,
+    imsi: int,
+    slice_id: str,
+    **kwargs: Any,
+) -> dict[str, Any]:
+    """
+    POST /device-attach/v0/attachments/subscribers/create
+
+    Payload identique à attach_device() dans l'exemple Nokia fourni.
+
+    NON TESTÉ. Relation exacte avec attach_device() inconnue : alias
+    du même service, étape préalable obligatoire, ou fonction
+    totalement différente (ex: enregistrer un abonné avant de pouvoir
+    l'attacher) ? À tester séparément si le temps le permet — pas
+    bloquant pour valider le cycle attach/detach principal.
+    """
+    client = get_camara_client()
+    payload = {
+        "device": {"phoneNumber": phone_number, "imsi": imsi},
+        "customer": {
+            "name": kwargs.get("customer_name", "DefaultAttachOperationCustomer"),
+            "description": kwargs.get(
+                "customer_description",
+                "I Am Default Who Order The Device Attach Operation",
+            ),
+            "address": kwargs.get("customer_address", "Dummy Customer Address"),
+            "contact": kwargs.get("customer_contact", "My Contact Should Be Here"),
+        },
+        "sliceId": slice_id,
+        "mobile_services": kwargs.get(
+            "mobile_services", ["Voice", "Voicemail", "5G-Data"]
+        ),
+        "traffic_categories": {
+            "apps": {
+                "os": kwargs.get(
+                    "traffic_app_os", "09078034-07db-4b13-a970-ab80235f7369"
+                ),
+                "apps": kwargs.get("traffic_apps", ["Daedalus"]),
+            }
+        },
+        "webhook": {
+            "notificationUrl": kwargs.get(
+                "notification_url", "https://application-server.com"
+            ),
+            "notificationAuthToken": kwargs.get(
+                "notification_auth_token", "c8974e592fa383d4a396071"
+            ),
+        },
+    }
+    return await client.post(DEVICE_ATTACH_SUBSCRIBER_PATH, json=payload)

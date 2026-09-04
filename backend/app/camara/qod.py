@@ -43,9 +43,11 @@ la session proprement une fois l'alerte terminée (ne pas laisser de
 sessions QoD orphelines).
 """
 import asyncio
+import logging
 from app.camara.client import get_camara_client, CamaraAPIError
 from app.core.config import get_settings
 
+logger = logging.getLogger(__name__)
 settings = get_settings()
 
 QOD_SESSIONS_ENDPOINT = "/quality-on-demand/v1/sessions"

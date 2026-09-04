@@ -1,7 +1,7 @@
 """
 Client HTTP de base pour toutes les APIs CAMARA / Nokia Network-as-Code.
 Centralise l'authentification, l'URL de base, et la gestion des erreurs.
-Tous les modules (congestion.py, qod.py, location.py, ...) utilisent ce client.
+Tous les modules (congestion.py, qod.py, location.py, slicing.py, ...) utilisent ce client.
 """
 import httpx
 from app.core.config import get_settings
@@ -42,7 +42,7 @@ class CamaraClient:
             )
         return self._handle_response(response)
 
-    async def get(self, path: str, params: dict | None = None) -> dict:
+    async def get(self, path: str, params: dict | None = None) -> dict | list:
         async with httpx.AsyncClient(timeout=15.0) as client:
             response = await client.get(
                 f"{self.base_url}{path}",
@@ -51,15 +51,24 @@ class CamaraClient:
             )
         return self._handle_response(response)
 
-    async def delete(self, path: str) -> dict:
+    async def delete(self, path: str, json: dict | None = None) -> dict:
+        """
+        json optionnel : certains endpoints CAMARA (ex: slice deletion sur
+        Nokia NaC) exigent un body même sur une requête DELETE, ce qui est
+        atypique en HTTP mais confirmé par les curl réels du playground
+        (--data '{}'). On le rend optionnel pour ne pas casser les appels
+        DELETE qui n'en ont pas besoin (ex: QoD deleteSession).
+        """
         async with httpx.AsyncClient(timeout=15.0) as client:
-            response = await client.delete(
+            response = await client.request(
+                "DELETE",
                 f"{self.base_url}{path}",
                 headers=self.headers,
+                json=json,
             )
         return self._handle_response(response)
 
-    def _handle_response(self, response: httpx.Response) -> dict:
+    def _handle_response(self, response: httpx.Response) -> dict | list:
         if response.status_code >= 400:
             raise CamaraAPIError(response.status_code, response.text)
         if response.status_code == 204:  # No Content (souvent sur delete)

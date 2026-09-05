@@ -29,9 +29,21 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: str = ""
 
     # --- Agent thresholds (business rules, deterministic layer) ---
+    # CONGESTION_ALERT_THRESHOLD et CONGESTION_CONFIDENCE_MIN sont définies et
+    # utilisées par rules.py (Mohamed) : échelle normalisée 0.0-1.0, alignée sur
+    # le schéma DB (risk_assessments.risk_score / congestion_events.confidence_level,
+    # DECIMAL 0-1). Ne pas modifier ces deux valeurs sans coordination avec lui.
     CONGESTION_ALERT_THRESHOLD: float = 0.7
-    CONGESTION_CONFIDENCE_MIN: int = 40
+    CONGESTION_CONFIDENCE_MIN: float = 0.6
     FALSE_POSITIVE_MAX_RATE: float = 0.15
+
+    # Seuil interne au wrapper Congestion Insights (congestion.py) : filtre
+    # appliqué DIRECTEMENT sur confidenceLevel brut renvoyé par CAMARA, échelle
+    # entière 1-99 (non documentée publiquement, confirmée empiriquement en
+    # sandbox). Distinct de CONGESTION_CONFIDENCE_MIN ci-dessus par nécessité :
+    # les deux variables ne partagent ni l'échelle ni le type, et les confondre
+    # casse silencieusement soit le filtre de démo, soit rules.py.
+    CAMARA_RAW_CONFIDENCE_MIN: int = 40
 
     # --- Security ---
     SECRET_KEY: str = "CHANGE_ME_IN_PRODUCTION"

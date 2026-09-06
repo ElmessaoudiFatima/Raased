@@ -32,5 +32,5 @@ class Alert(Base):
     risk_assessment: Mapped["RiskAssessment"] = relationship(back_populates="alerts")
     acknowledged_by_user: Mapped["User | None"] = relationship(
         back_populates="acknowledged_alerts",
-        foreign_keys=["Alert.acknowledged_by"],
+        foreign_keys="Alert.acknowledged_by",
     )

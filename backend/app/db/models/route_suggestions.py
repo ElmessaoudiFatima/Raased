@@ -24,9 +24,9 @@ class RouteSuggestion(Base):
     agent_decision: Mapped["AgentDecision"] = relationship(back_populates="route_suggestions")
     original_corridor: Mapped["Corridor"] = relationship(
         back_populates="original_route_suggestions",
-        foreign_keys=["RouteSuggestion.original_corridor_id"],
+        foreign_keys="RouteSuggestion.original_corridor_id",
     )
     suggested_corridor: Mapped["Corridor"] = relationship(
         back_populates="suggested_route_suggestions",
-        foreign_keys=["RouteSuggestion.suggested_corridor_id"],
+        foreign_keys="RouteSuggestion.suggested_corridor_id",
     )

@@ -31,6 +31,6 @@ class AgentDecision(Base):
     cargo: Mapped["Cargo"] = relationship(back_populates="agent_decisions")
     approved_by_user: Mapped["User | None"] = relationship(
         back_populates="approved_decisions",
-        foreign_keys=["AgentDecision.approved_by"],
+        foreign_keys="AgentDecision.approved_by",
     )
     route_suggestions: Mapped[list["RouteSuggestion"]] = relationship(back_populates="agent_decision")

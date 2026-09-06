@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     CAMARA_BASE_URL: str = "https://network-as-code.p-eu.rapidapi.com"
     CAMARA_API_KEY: str = "CHANGE_ME"
     CAMARA_SANDBOX_MODE: bool = True
+    CAMARA_WEBHOOK_SECRET: str = "CHANGE_ME"
 
     # --- LLM providers (agent reasoning layer) ---
     LLM_PROVIDER: str = "gemini"  # groq | openai | gemini

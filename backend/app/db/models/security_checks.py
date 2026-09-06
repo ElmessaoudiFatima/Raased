@@ -23,3 +23,4 @@ class SecurityCheck(Base):
     timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
     tracker: Mapped["Tracker"] = relationship(back_populates="security_checks")
+    security_alerts: Mapped[list["SecurityAlert"]] = relationship(back_populates="security_check")

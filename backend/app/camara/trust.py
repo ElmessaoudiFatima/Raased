@@ -5,28 +5,10 @@ Chaque fonction :
 1. appelle l'API CAMARA correspondante via `app.camara.client`,
 2. persiste systématiquement le résultat dans `SecurityCheck`
    (check_type = "number_verification" / "sim_swap" / "device_swap"),
-3. pour sim_swap / device_swap, déclenche une alerte si un swap récent
-   est détecté.
-
-Note (bloquant, à trancher avant de considérer cette tâche terminée) :
-`Alert.risk_assessment_id` et `Alert.cargo_id` sont NOT NULL, et
-`RiskAssessment` lui-même requiert `corridor_id` + `congestion_event_id`.
-Un événement de sécurité (SIM swap, device swap) n'est pas naturellement
-rattaché à une évaluation de risque congestion : inventer un
-`RiskAssessment` fictif pour satisfaire la contrainte polluerait cette
-table avec des données sans sens métier.
-
-En attendant ta décision, `_trigger_security_alert` NE crée PAS de ligne
-dans `alerts` : elle journalise l'événement (logger applicatif) pour
-qu'aucune détection ne soit perdue, et le détail reste consultable dans
-`SecurityCheck.details`. Deux options pour débloquer :
-  1) Ajouter une table dédiée, ex. `security_alerts` (organization_id,
-     tracker_id, check_type, severity, message, status...), sans les
-     colonnes congestion-spécifiques — recommandé.
-  2) Rendre `Alert.risk_assessment_id` et `Alert.cargo_id` nullable pour
-     que la même table serve aussi aux alertes purement sécurité.
-Dis-moi laquelle tu préfères et j'ajoute la migration + le code de
-création d'alerte correspondants.
+3. pour sim_swap / device_swap, crée une `SecurityAlert` si un swap
+   récent est détecté (table dédiée, distincte de `Alert` qui est
+   réservée aux alertes de risque congestion — voir
+   app/db/models/security_alerts.py pour la justification).
 """
 from __future__ import annotations
 
@@ -39,6 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.camara.client import CamaraAPIError, camara_post
 from app.core.config import get_settings
+from app.db.models.security_alerts import SecurityAlert
 from app.db.models.security_checks import SecurityCheck
 from app.db.models.trackers import Tracker
 
@@ -81,17 +64,35 @@ async def _persist_check(
     return check
 
 
-async def _trigger_security_alert(tracker_id: UUID, check_type: str, details: dict) -> None:
-    """
-    Point d'entrée unique pour déclencher une alerte de sécurité distincte.
-    Voir la note en tête de module : ne crée pas encore de ligne `Alert`
-    tant que la question de schéma n'est pas tranchée.
-    """
-    logger.warning(
-        "ALERTE SÉCURITÉ (non persistée, en attente de décision schéma) : "
-        "tracker_id=%s check_type=%s details=%s",
-        tracker_id, check_type, details,
+async def _trigger_security_alert(
+    db: AsyncSession,
+    *,
+    organization_id: UUID,
+    tracker_id: UUID,
+    security_check_id: UUID,
+    check_type: str,
+    details: dict,
+    severity: str = "high",
+) -> SecurityAlert:
+    """Crée une SecurityAlert pour un événement de sécurité tracker (sim_swap, device_swap, ...)."""
+    message = f"{check_type} détecté sur le tracker {tracker_id}"
+    alert = SecurityAlert(
+        organization_id=organization_id,
+        tracker_id=tracker_id,
+        security_check_id=security_check_id,
+        check_type=check_type,
+        severity=severity,
+        message=message,
+        status="open",
     )
+    db.add(alert)
+    await db.commit()
+    await db.refresh(alert)
+    logger.warning(
+        "SecurityAlert créée : id=%s tracker_id=%s check_type=%s",
+        alert.id, tracker_id, check_type,
+    )
+    return alert
 
 
 async def verify_number(db: AsyncSession, tracker_id: UUID) -> SecurityCheck:
@@ -127,7 +128,7 @@ async def verify_number(db: AsyncSession, tracker_id: UUID) -> SecurityCheck:
 async def check_sim_swap(db: AsyncSession, tracker_id: UUID) -> SecurityCheck:
     """
     Interroge CAMARA SIM Swap pour savoir si la carte SIM associée à ce
-    tracker a été échangée récemment.
+    tracker a été échangée récemment. Crée une SecurityAlert si oui.
     """
     tracker = await _get_tracker_or_raise(db, tracker_id)
 
@@ -154,7 +155,14 @@ async def check_sim_swap(db: AsyncSession, tracker_id: UUID) -> SecurityCheck:
     )
 
     if swapped_recently:
-        await _trigger_security_alert(tracker_id, "sim_swap", response)
+        await _trigger_security_alert(
+            db,
+            organization_id=tracker.organization_id,
+            tracker_id=tracker_id,
+            security_check_id=check.id,
+            check_type="sim_swap",
+            details=response,
+        )
 
     return check
 
@@ -162,7 +170,7 @@ async def check_sim_swap(db: AsyncSession, tracker_id: UUID) -> SecurityCheck:
 async def check_device_swap(db: AsyncSession, tracker_id: UUID) -> SecurityCheck:
     """
     Interroge CAMARA Device Swap pour savoir si l'appareil associé à ce
-    tracker a changé récemment côté réseau.
+    tracker a changé récemment côté réseau. Crée une SecurityAlert si oui.
     """
     tracker = await _get_tracker_or_raise(db, tracker_id)
 
@@ -189,6 +197,14 @@ async def check_device_swap(db: AsyncSession, tracker_id: UUID) -> SecurityCheck
     )
 
     if swapped_recently:
-        await _trigger_security_alert(tracker_id, "device_swap", response)
+        await _trigger_security_alert(
+            db,
+            organization_id=tracker.organization_id,
+            tracker_id=tracker_id,
+            security_check_id=check.id,
+            check_type="device_swap",
+            details=response,
+        )
 
     return check
+

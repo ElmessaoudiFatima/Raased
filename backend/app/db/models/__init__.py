@@ -13,6 +13,7 @@ from app.db.models.organizations import Organization
 from app.db.models.risk_assessments import RiskAssessment
 from app.db.models.risk_zones import RiskZone
 from app.db.models.route_suggestions import RouteSuggestion
+from app.db.models.security_alerts import SecurityAlert
 from app.db.models.security_checks import SecurityCheck
 from app.db.models.tracker_locations import TrackerLocation
 from app.db.models.trackers import Tracker
@@ -34,6 +35,7 @@ __all__ = [
     "AgentDecision",
     "RouteSuggestion",
     "SecurityCheck",
+    "SecurityAlert",
     "GeofenceSubscription",
     "Alert",
     "NetworkAction",

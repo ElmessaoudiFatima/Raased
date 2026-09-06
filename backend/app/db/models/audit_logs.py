@@ -14,7 +14,10 @@ class AuditLog(Base):
     __tablename__ = "audit_logs"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    organization_id: Mapped[UUID] = mapped_column(ForeignKey("organizations.id"), nullable=False)
+    # Nullable : un événement système/plateforme (ex. tentative de webhook
+    # rejetée avant toute vérification de signature) n'a pas encore
+    # d'organisation résolue au moment du log.
+    organization_id: Mapped[UUID | None] = mapped_column(ForeignKey("organizations.id"), nullable=True)
     user_id: Mapped[UUID | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     actor_type: Mapped[str] = mapped_column(String(30), nullable=False)
     action: Mapped[str] = mapped_column(String(100), nullable=False)
@@ -25,5 +28,5 @@ class AuditLog(Base):
     payload_hash: Mapped[str | None] = mapped_column(String(128), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
 
-    organization: Mapped["Organization"] = relationship(back_populates="audit_logs")
+    organization: Mapped["Organization | None"] = relationship(back_populates="audit_logs")
     user: Mapped["User | None"] = relationship(back_populates="audit_logs")

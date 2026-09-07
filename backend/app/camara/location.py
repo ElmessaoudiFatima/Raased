@@ -44,7 +44,7 @@ de réponse (cercle + timestamp) est correctement exploité par notre pipeline ;
 la variation réelle par device serait observable uniquement en production
 avec de vrais devices sur un vrai réseau."
 """
-from app.camara.client import get_camara_client
+from app.camara.client import camara_post
 
 LOCATION_RETRIEVAL_ENDPOINT = "/location-retrieval/v0/retrieve"
 
@@ -59,9 +59,8 @@ async def fetch_location(phone_number: str, max_age: int = 60) -> dict:
     Retourne le dict brut tel que renvoyé par l'API (structure à confirmer
     empiriquement, voir avertissement en tête de fichier).
     """
-    client = get_camara_client()
     payload = {
         "device": {"phoneNumber": phone_number},
         "maxAge": max_age,
     }
-    return await client.post(LOCATION_RETRIEVAL_ENDPOINT, json=payload)
+    return await camara_post(LOCATION_RETRIEVAL_ENDPOINT, payload)

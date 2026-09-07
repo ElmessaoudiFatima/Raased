@@ -60,8 +60,9 @@ async def _request(
     params: dict[str, Any] | None = None,
 ) -> httpx.Response:
     headers = {
-        "Authorization": f"Bearer {settings.CAMARA_API_KEY}",
         "Content-Type": "application/json",
+        "x-rapidapi-key": settings.CAMARA_API_KEY,
+        "x-rapidapi-host": settings.CAMARA_API_HOST,
     }
     async with httpx.AsyncClient(base_url=settings.CAMARA_BASE_URL, timeout=_TIMEOUT_SECONDS) as client:
         response = await client.request(method, path, json=json_body, params=params, headers=headers)
@@ -105,4 +106,26 @@ async def camara_get(path: str, params: dict[str, Any] | None = None) -> dict[st
     except httpx.TransportError as exc:
         raise CamaraAPIError(f"Erreur réseau CAMARA sur {path}: {exc}") from exc
 
+    return await _handle_response(response, path)
+
+
+async def camara_delete(path: str, json_body: dict[str, Any] | None = None) -> dict[str, Any]:
+    """
+    DELETE générique vers un endpoint CAMARA. Lève CamaraAPIError sur échec définitif.
+
+    json_body optionnel : certains endpoints CAMARA (ex: slice deletion sur
+    Nokia NaC) exigent un body même sur une requête DELETE, ce qui est
+    atypique en HTTP mais confirmé par les curl réels du playground
+    (--data '{}'). On le rend optionnel pour ne pas forcer un body sur les
+    appels DELETE qui n'en ont pas besoin (ex: QoD deleteSession).
+    """
+    try:
+        response = await _request("DELETE", path, json_body=json_body)
+    except _RetryableStatusError as exc:
+        raise CamaraAPIError(f"Échec CAMARA après retries sur {path}: {exc}") from exc
+    except httpx.TransportError as exc:
+        raise CamaraAPIError(f"Erreur réseau CAMARA sur {path}: {exc}") from exc
+
+    if response.status_code == 204:
+        return {}
     return await _handle_response(response, path)

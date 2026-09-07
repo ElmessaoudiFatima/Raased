@@ -1,14 +1,17 @@
 """
 Service d'audit append-only.
 
-Toute écriture dans `audit_logs` doit passer par `write_audit_log`. Ce module
-ne fournit volontairement AUCUNE fonction d'update/delete : l'immuabilité
-sera aussi renforcée au niveau PostgreSQL par la migration de la Tâche 4b
-(révocation UPDATE/DELETE sur la table), pour tenir même en cas de bug
-applicatif.
+Toute écriture dans la table `audit_logs` doit passer par `write_audit_log`.
+Ce module ne fournit volontairement AUCUNE fonction d'update ou de delete :
+la garantie d'immuabilité est également renforcée au niveau PostgreSQL par
+une migration Alembic dédiée qui révoque les droits UPDATE/DELETE sur cette
+table (voir Tâche 4b), afin que l'append-only tienne même en cas de bug
+applicatif ou d'accès direct à la base.
 
-Le contenu brut (`payload`) n'est jamais stocké : seule son empreinte
-SHA-256 (`payload_hash`) est persistée.
+Par design, le contenu brut (`payload`) n'est jamais stocké : seule son
+empreinte SHA-256 (`payload_hash`) est persistée, ce qui permet de détecter
+une falsification a posteriori sans dupliquer des données potentiellement
+sensibles dans le journal.
 """
 from __future__ import annotations
 
@@ -23,6 +26,7 @@ from app.db.models.audit_logs import AuditLog
 
 
 def _hash_payload(payload: dict[str, Any] | None) -> str | None:
+    """Empreinte SHA-256 canonique et déterministe d'un payload JSON-sérialisable."""
     if payload is None:
         return None
     canonical = json.dumps(payload, sort_keys=True, default=str)
@@ -32,7 +36,7 @@ def _hash_payload(payload: dict[str, Any] | None) -> str | None:
 async def write_audit_log(
     db: AsyncSession,
     *,
-    organization_id: UUID,
+    organization_id: UUID | None,
     action: str,
     entity_type: str,
     result: str,
@@ -43,7 +47,14 @@ async def write_audit_log(
     payload: dict[str, Any] | None = None,
     commit: bool = True,
 ) -> AuditLog:
-    """Insère une unique ligne dans `audit_logs`. Jamais d'update/delete."""
+    """
+    Insère une unique ligne dans `audit_logs`. N'update et ne supprime jamais
+    de ligne existante (append-only par construction).
+
+    `organization_id` est nullable : un événement système/plateforme (ex.
+    webhook rejeté avant toute vérification de signature) n'a pas encore
+    d'organisation résolue au moment du log.
+    """
     entry = AuditLog(
         organization_id=organization_id,
         user_id=user_id,

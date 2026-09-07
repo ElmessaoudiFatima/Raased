@@ -53,6 +53,7 @@ class Settings(BaseSettings):
     CONGESTION_CONFIDENCE_MIN: float = 0.6
     FALSE_POSITIVE_MAX_RATE: float = 0.15
 
+
     # Seuil interne au wrapper Congestion Insights (congestion.py) : filtre
     # appliqué DIRECTEMENT sur confidenceLevel brut renvoyé par CAMARA, échelle
     # entière 1-99 (non documentée publiquement, confirmée empiriquement en
@@ -60,6 +61,10 @@ class Settings(BaseSettings):
     # les deux variables ne partagent ni l'échelle ni le type, et les confondre
     # casse silencieusement soit le filtre de démo, soit rules.py.
     CAMARA_RAW_CONFIDENCE_MIN: int = 40
+
+    # --- Sécurité : détection d'usurpation de position ---
+    POSITION_SPOOFING_THRESHOLD_KM: float = 5.0
+
 
     # --- Security ---
     SECRET_KEY: str = "CHANGE_ME_IN_PRODUCTION"

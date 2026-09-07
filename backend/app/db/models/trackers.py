@@ -36,4 +36,5 @@ class Tracker(Base):
     security_checks: Mapped[list["SecurityCheck"]] = relationship(back_populates="tracker")
     geofence_subscriptions: Mapped[list["GeofenceSubscription"]] = relationship(back_populates="tracker")
     alerts: Mapped[list["Alert"]] = relationship(back_populates="tracker")
+    security_alerts: Mapped[list["SecurityAlert"]] = relationship(back_populates="tracker")
     network_actions: Mapped[list["NetworkAction"]] = relationship(back_populates="tracker")

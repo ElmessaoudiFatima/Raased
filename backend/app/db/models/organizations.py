@@ -27,4 +27,5 @@ class Organization(Base):
     cargos: Mapped[list["Cargo"]] = relationship(back_populates="organization")
     trackers: Mapped[list["Tracker"]] = relationship(back_populates="organization")
     alerts: Mapped[list["Alert"]] = relationship(back_populates="organization")
+    security_alerts: Mapped[list["SecurityAlert"]] = relationship(back_populates="organization")
     audit_logs: Mapped[list["AuditLog"]] = relationship(back_populates="organization")

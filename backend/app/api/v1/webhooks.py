@@ -6,28 +6,16 @@ Sécurité :
 - Chaque requête doit porter une signature HMAC-SHA256 valide dans le header
   `X-Signature`, calculée sur le corps brut de la requête avec le secret
   partagé `CAMARA_WEBHOOK_SECRET`. Toute requête sans signature valide est
-  rejetée avec 401 et journalisée (log applicatif — voir la note plus bas
-  concernant l'audit DB).
+  rejetée avec 401 et journalisée dans `audit_logs` (organization_id=None,
+  puisqu'aucune organisation n'est résolue à ce stade — voir
+  app/db/models/audit_logs.py).
 - L'endpoint est protégé par un rate limit (slowapi) pour limiter l'impact
   d'un flood ou d'un replay.
 
-Note importante (à valider avant la Tâche 2/3) :
-- `AuditLog.organization_id` est NOT NULL. Au moment où une signature est
-  rejetée, on ne peut pas résoudre d'organisation de façon fiable : les
-  champs du payload ne sont pas encore authentifiés, donc s'en servir pour
-  chercher une organisation reviendrait à faire confiance à une donnée non
-  vérifiée (et ouvrirait une piste d'énumération). Les tentatives rejetées
-  sont donc journalisées via le logger applicatif, PAS dans `audit_logs`
-  pour l'instant. Deux options pour lever cette limite :
-    1) rendre `organization_id` nullable sur `audit_logs` (recommandé : un
-       événement système/plateforme n'appartient pas forcément à une org) ;
-    2) introduire une organisation "system" dédiée comme valeur par défaut.
-  Dis-moi laquelle tu préfères et j'ajoute la migration correspondante.
-- Les événements dont la signature EST valide ne sont pas encore persistés
-  ici : leur traitement métier (résolution du tracker/organisation via
-  `GeofenceSubscription`, écriture de `TrackerLocation`, etc.) relève des
-  Tâches 2/3, qui pourront alors appeler `write_audit_log` avec un
-  `organization_id` réellement résolu.
+Les événements dont la signature EST valide ne sont pas encore traités
+métier ici : leur résolution tracker/organisation (via
+`GeofenceSubscription`, écriture de `TrackerLocation`, etc.) relève des
+Tâches 2/3.
 """
 from __future__ import annotations
 
@@ -39,6 +27,8 @@ from fastapi import APIRouter, Header, HTTPException, Request, status
 
 from app.core.config import get_settings
 from app.core.rate_limit import limiter
+from app.db.session import AsyncSessionLocal
+from app.services.audit import write_audit_log
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -57,7 +47,9 @@ _CONGESTION_EVENT_TYPES = {
 def verify_signature(raw_body: bytes, signature_header: str | None, secret: str) -> bool:
     """
     Vérifie en temps constant la signature HMAC-SHA256 du corps de requête.
-    Accepte un digest hex brut ou le format préfixé `sha256=<hex>`.
+
+    Accepte soit un digest hex brut, soit le format préfixé `sha256=<hex>`
+    (convention courante côté fournisseurs de webhooks).
     """
     if not signature_header or not secret:
         return False
@@ -85,6 +77,16 @@ async def receive_camara_webhook(
             client_ip,
             request.url.path,
         )
+        async with AsyncSessionLocal() as db:
+            await write_audit_log(
+                db,
+                organization_id=None,
+                actor_type="webhook",
+                action="camara_webhook_rejected",
+                entity_type="camara_event",
+                result="rejected_invalid_signature",
+                payload={"client_ip": client_ip, "path": request.url.path},
+            )
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid signature")
 
     try:

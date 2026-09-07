@@ -2,8 +2,9 @@
 Tests pour les wrappers CAMARA Trust (verify_number, check_sim_swap, check_device_swap).
 
 La session DB et l'appel CAMARA sont mockés : ces tests valident la logique
-(status persisté, détection de swap, gestion d'erreur) sans dépendre d'une
-vraie base Postgres ni d'un accès réseau.
+(status persisté, détection de swap, gestion d'erreur, atomicité
+check+alerte, écriture d'audit) sans dépendre d'une vraie base Postgres ni
+d'un accès réseau.
 """
 from unittest.mock import AsyncMock, patch
 from uuid import uuid4
@@ -31,6 +32,7 @@ def _mock_db_with_tracker(tracker):
     result.scalar_one_or_none = lambda: tracker
     db.execute = AsyncMock(return_value=result)
     db.add = lambda obj: None
+    db.flush = AsyncMock()
     db.commit = AsyncMock()
     db.refresh = AsyncMock()
     return db
@@ -76,6 +78,27 @@ async def test_verify_number_raises_for_tracker_without_msisdn():
 
 
 @pytest.mark.asyncio
+async def test_verify_number_writes_audit_log():
+    """La vérification (même sans alerte) doit journaliser un audit_log."""
+    tracker = _make_tracker()
+    db = _mock_db_with_tracker(tracker)
+
+    with patch(
+        "app.camara.trust.camara_post",
+        new=AsyncMock(return_value={"devicePhoneNumberVerified": True}),
+    ), patch(
+        "app.camara.trust.write_audit_log", new=AsyncMock()
+    ) as mock_audit:
+        await verify_number(db, tracker.id)
+
+    mock_audit.assert_awaited_once()
+    _, kwargs = mock_audit.call_args
+    assert kwargs["action"] == "security_check_performed"
+    assert kwargs["organization_id"] == tracker.organization_id
+    assert kwargs["commit"] is False
+
+
+@pytest.mark.asyncio
 async def test_sim_swap_detected_triggers_alert_hook():
     tracker = _make_tracker()
     db = _mock_db_with_tracker(tracker)
@@ -107,6 +130,49 @@ async def test_sim_swap_clean_does_not_trigger_alert():
 
     assert check.status == "clean"
     mock_alert.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_sim_swap_clean_commits_immediately():
+    """
+    Cas sans swap : un seul écrit (SecurityCheck + son audit) donc un seul
+    commit, exécuté directement par _persist_check (pas de report).
+    """
+    tracker = _make_tracker()
+    db = _mock_db_with_tracker(tracker)
+
+    with patch(
+        "app.camara.trust.camara_post",
+        new=AsyncMock(return_value={"swapped": False}),
+    ):
+        await check_sim_swap(db, tracker.id)
+
+    assert db.commit.await_count == 1
+
+
+@pytest.mark.asyncio
+async def test_sim_swap_detected_commits_exactly_once():
+    """
+    Test d'atomicité réel : quand un swap est détecté, on laisse le vrai
+    chemin _trigger_security_alert -> create_security_alert s'exécuter
+    (rien n'est mocké dans cette chaîne, seul CAMARA et db.execute le
+    sont), et on vérifie qu'un SEUL commit a lieu au total pour
+    SecurityCheck + AuditLog + SecurityAlert + AuditLog. Deux commits
+    signifierait une fenêtre où le SecurityCheck pourrait être persisté
+    sans sa SecurityAlert correspondante.
+    """
+    tracker = _make_tracker()
+    db = _mock_db_with_tracker(tracker)
+
+    with patch(
+        "app.camara.trust.camara_post",
+        new=AsyncMock(return_value={"swapped": True, "requestId": "r3"}),
+    ):
+        check = await check_sim_swap(db, tracker.id)
+
+    assert check.status == "swap_detected"
+    assert db.commit.await_count == 1
+    assert db.flush.await_count == 2  # un flush dans _persist_check, un dans create_security_alert
 
 
 @pytest.mark.asyncio

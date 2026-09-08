@@ -96,7 +96,7 @@ delete), PAS comme scénario d'attachement device-à-slice fonctionnel
 
 from typing import Any
 
-from app.camara.client import get_camara_client
+from app.camara.client import camara_post, camara_get, camara_delete
 
 SLICE_BASE_PATH = "/slice/v1/slices"
 DEVICE_ATTACH_BASE_PATH = "/device-attach/v0/attachments"
@@ -124,14 +124,12 @@ async def create_slice(payload: dict[str, Any]) -> dict[str, Any]:
     immédiatement un sink invalide (INVALID_SINK). Comportement différent
     entre les deux APIs asynchrones — à noter pour la présentation.
     """
-    client = get_camara_client()
-    return await client.post(SLICE_BASE_PATH, json=payload)
+    return await camara_post(SLICE_BASE_PATH, payload)
 
 
 async def get_all_slices() -> list[dict[str, Any]]:
     """GET /slice/v1/slices — liste toutes les slices de l'application."""
-    client = get_camara_client()
-    return await client.get(SLICE_BASE_PATH)
+    return await camara_get(SLICE_BASE_PATH)
 
 
 async def get_slice(slice_id: str) -> dict[str, Any]:
@@ -141,8 +139,7 @@ async def get_slice(slice_id: str) -> dict[str, Any]:
     slice_id = le champ `name` (UUID) renvoyé par create_slice, PAS csi_id.
     Confirmé empiriquement (voir docstring module).
     """
-    client = get_camara_client()
-    return await client.get(f"{SLICE_BASE_PATH}/{slice_id}")
+    return await camara_get(f"{SLICE_BASE_PATH}/{slice_id}")
 
 
 async def activate_slice(slice_id: str) -> dict[str, Any]:
@@ -153,14 +150,12 @@ async def activate_slice(slice_id: str) -> dict[str, Any]:
     playground envoie quand même --data '{}'. On reproduit le
     comportement observé plutôt que de deviner.
     """
-    client = get_camara_client()
-    return await client.post(f"{SLICE_BASE_PATH}/{slice_id}/activate", json={})
+    return await camara_post(f"{SLICE_BASE_PATH}/{slice_id}/activate", {})
 
 
 async def deactivate_slice(slice_id: str) -> dict[str, Any]:
     """POST /slice/v1/slices/{slice_id}/deactivate — même remarque que activate_slice."""
-    client = get_camara_client()
-    return await client.post(f"{SLICE_BASE_PATH}/{slice_id}/deactivate", json={})
+    return await camara_post(f"{SLICE_BASE_PATH}/{slice_id}/deactivate", {})
 
 
 async def delete_slice(slice_id: str) -> dict[str, Any]:
@@ -171,8 +166,7 @@ async def delete_slice(slice_id: str) -> dict[str, Any]:
     (atypique en HTTP mais confirmé). Nécessite le fix de CamaraClient.delete()
     pour accepter un body.
     """
-    client = get_camara_client()
-    return await client.delete(f"{SLICE_BASE_PATH}/{slice_id}", json={})
+    return await camara_delete(f"{SLICE_BASE_PATH}/{slice_id}", json_body={})
 
 
 # ============================================================
@@ -200,7 +194,6 @@ async def attach_device(
     par le playground RapidAPI. slice_id : voir résolution dans le
     docstring module — `name` (UUID) confirmé comme sliceId correct.
     """
-    client = get_camara_client()
     payload = {
         "device": {"phoneNumber": phone_number, "imsi": imsi},
         "customer": {
@@ -222,7 +215,7 @@ async def attach_device(
             "notificationAuthToken": notification_auth_token,
         },
     }
-    return await client.post(DEVICE_ATTACH_BASE_PATH, json=payload)
+    return await camara_post(DEVICE_ATTACH_BASE_PATH, payload)
 
 
 async def detach_device(attachment_id: str) -> dict[str, Any]:
@@ -237,8 +230,7 @@ async def detach_device(attachment_id: str) -> dict[str, Any]:
     Body vide explicite ({}), reproduction fidèle de l'exemple curl
     Nokia (--data '{}'), même pattern que delete_slice() ci-dessus.
     """
-    client = get_camara_client()
-    return await client.delete(f"{DEVICE_ATTACH_BASE_PATH}/{attachment_id}", json={})
+    return await camara_delete(f"{DEVICE_ATTACH_BASE_PATH}/{attachment_id}", json_body={})
 
 
 async def get_all_attachments_status() -> Any:
@@ -250,14 +242,12 @@ async def get_all_attachments_status() -> Any:
     brute plutôt qu'un dict. À vérifier empiriquement avant de figer
     un type de retour strict ici.
     """
-    client = get_camara_client()
-    return await client.get(DEVICE_ATTACH_BASE_PATH)
+    return await camara_get(DEVICE_ATTACH_BASE_PATH)
 
 
 async def get_attachment_status(attachment_id: str) -> dict[str, Any]:
     """GET /device-attach/v0/attachments/{attachment_id}"""
-    client = get_camara_client()
-    return await client.get(f"{DEVICE_ATTACH_BASE_PATH}/{attachment_id}")
+    return await camara_get(f"{DEVICE_ATTACH_BASE_PATH}/{attachment_id}")
 
 
 async def manage_subscriber(
@@ -277,7 +267,6 @@ async def manage_subscriber(
     l'attacher) ? À tester séparément si le temps le permet — pas
     bloquant pour valider le cycle attach/detach principal.
     """
-    client = get_camara_client()
     payload = {
         "device": {"phoneNumber": phone_number, "imsi": imsi},
         "customer": {
@@ -310,4 +299,4 @@ async def manage_subscriber(
             ),
         },
     }
-    return await client.post(DEVICE_ATTACH_SUBSCRIBER_PATH, json=payload)
+    return await camara_post(DEVICE_ATTACH_SUBSCRIBER_PATH, payload)

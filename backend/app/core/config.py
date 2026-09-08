@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     ENV: str = "development"
     DEBUG: bool = True
     API_V1_PREFIX: str = "/api/v1"
+    FRONTEND_URL: str = "https://app.raased.ma"
 
     # --- Database ---
     DATABASE_URL: str = "postgresql+asyncpg://raased:raased@localhost:5432/raased"
@@ -65,6 +66,14 @@ class Settings(BaseSettings):
     # --- Sécurité : détection d'usurpation de position ---
     POSITION_SPOOFING_THRESHOLD_KM: float = 5.0
 
+
+    # --- Email / SMTP ---
+    SMTP_HOST: str = ""              # vide = mode log (dev)
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_USE_TLS: bool = True
+    EMAIL_FROM_NAME: str = "Raased"
 
     # --- Security ---
     SECRET_KEY: str = "CHANGE_ME_IN_PRODUCTION"

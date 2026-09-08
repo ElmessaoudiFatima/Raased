@@ -38,7 +38,6 @@ class Organization(Base):
     )
 
     users: Mapped[list["User"]] = relationship(back_populates="organization", foreign_keys="User.organization_id")
-    corridors: Mapped[list["Corridor"]] = relationship(back_populates="organization")
     cargos: Mapped[list["Cargo"]] = relationship(back_populates="organization")
     trackers: Mapped[list["Tracker"]] = relationship(back_populates="organization")
     alerts: Mapped[list["Alert"]] = relationship(back_populates="organization")

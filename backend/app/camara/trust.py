@@ -21,9 +21,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.camara.client import CamaraAPIError, camara_post
 from app.core.config import get_settings
-from app.db.models.security_alerts import SecurityAlert
 from app.db.models.security_checks import SecurityCheck
 from app.db.models.trackers import Tracker
+from app.services.security_alerts import create_security_alert
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -73,26 +73,18 @@ async def _trigger_security_alert(
     check_type: str,
     details: dict,
     severity: str = "high",
-) -> SecurityAlert:
+):
     """Crée une SecurityAlert pour un événement de sécurité tracker (sim_swap, device_swap, ...)."""
     message = f"{check_type} détecté sur le tracker {tracker_id}"
-    alert = SecurityAlert(
+    return await create_security_alert(
+        db,
         organization_id=organization_id,
         tracker_id=tracker_id,
-        security_check_id=security_check_id,
         check_type=check_type,
-        severity=severity,
         message=message,
-        status="open",
+        severity=severity,
+        security_check_id=security_check_id,
     )
-    db.add(alert)
-    await db.commit()
-    await db.refresh(alert)
-    logger.warning(
-        "SecurityAlert créée : id=%s tracker_id=%s check_type=%s",
-        alert.id, tracker_id, check_type,
-    )
-    return alert
 
 
 async def verify_number(db: AsyncSession, tracker_id: UUID) -> SecurityCheck:
@@ -207,4 +199,3 @@ async def check_device_swap(db: AsyncSession, tracker_id: UUID) -> SecurityCheck
         )
 
     return check
-

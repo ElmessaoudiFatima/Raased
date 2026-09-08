@@ -44,7 +44,7 @@ sessions QoD orphelines).
 """
 import asyncio
 import logging
-from app.camara.client import get_camara_client, CamaraAPIError
+from app.camara.client import camara_post, camara_get, camara_delete, CamaraAPIError
 from app.core.config import get_settings
 
 logger = logging.getLogger(__name__)
@@ -68,7 +68,6 @@ async def create_qod_session(
     Réponse confirmée en test réel :
     { "sessionId": "...", "qosStatus": "REQUESTED", "duration": ... , ... }
     """
-    client = get_camara_client()
     device: dict = {
         "phoneNumber": phone_number,
         "ipv4Address": {
@@ -85,13 +84,12 @@ async def create_qod_session(
         "qosProfile": qos_profile,
         "duration": duration,
     }
-    return await client.post(QOD_SESSIONS_ENDPOINT, json=payload)
+    return await camara_post(QOD_SESSIONS_ENDPOINT, payload)
 
 
 async def get_qod_session(session_id: str) -> dict:
     """Récupère l'état actuel d'une session QoD (qosStatus, expiresAt, ...)."""
-    client = get_camara_client()
-    return await client.get(f"{QOD_SESSIONS_ENDPOINT}/{session_id}")
+    return await camara_get(f"{QOD_SESSIONS_ENDPOINT}/{session_id}")
 
 
 async def get_qod_sessions_for_device(phone_number: str) -> dict:
@@ -100,9 +98,8 @@ async def get_qod_sessions_for_device(phone_number: str) -> dict:
     C'est un POST vers /retrieve-sessions avec le device dans le body
     (confirmé via le playground Nokia, pas un GET avec query params).
     """
-    client = get_camara_client()
     payload = {"device": {"phoneNumber": phone_number}}
-    return await client.post(QOD_RETRIEVE_SESSIONS_ENDPOINT, json=payload)
+    return await camara_post(QOD_RETRIEVE_SESSIONS_ENDPOINT, payload)
 
 
 async def extend_qod_session(
@@ -126,12 +123,11 @@ async def extend_qod_session(
     un seul retry après court délai est tenté avant de laisser remonter
     l'erreur. Désactivable si on veut observer le comportement brut de l'API.
     """
-    client = get_camara_client()
     payload = {"requestedAdditionalDuration": additional_duration}
     endpoint = f"{QOD_SESSIONS_ENDPOINT}/{session_id}/extend"
 
     try:
-        return await client.post(endpoint, json=payload)
+        return await camara_post(endpoint, payload)
     except CamaraAPIError as exc:
         if retry_on_404 and exc.status_code == 404:
             # TODO : remplacer ce log par une écriture dans la table
@@ -146,7 +142,7 @@ async def extend_qod_session(
             )
             await asyncio.sleep(1.0)
             try:
-                result = await client.post(endpoint, json=payload)
+                result = await camara_post(endpoint, payload)
                 logger.info(
                     "QoD extend() retry succeeded for session_id=%s", session_id
                 )
@@ -155,7 +151,7 @@ async def extend_qod_session(
                 logger.error(
                     "QoD extend() retry ALSO failed for session_id=%s: %s",
                     session_id,
-                    retry_exc.detail,
+                    retry_exc.response_body,
                 )
                 raise
         raise
@@ -166,8 +162,7 @@ async def delete_qod_session(session_id: str) -> dict:
     Termine une session QoD. À appeler systématiquement une fois l'alerte
     résolue, pour ne pas laisser une priorisation réseau active inutilement.
     """
-    client = get_camara_client()
-    return await client.delete(f"{QOD_SESSIONS_ENDPOINT}/{session_id}")
+    return await camara_delete(f"{QOD_SESSIONS_ENDPOINT}/{session_id}")
 
 
 async def request_priority_for_tracker(

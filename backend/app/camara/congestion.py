@@ -16,7 +16,7 @@ Important (validé en sandbox, tests équipe) :
   DECIMAL 0-1 de congestion_events.confidence_level.
 """
 from datetime import datetime
-from app.camara.client import get_camara_client
+from app.camara.client import camara_post
 from app.core.config import get_settings
 
 settings = get_settings()
@@ -33,7 +33,6 @@ async def fetch_congestion(
     Interroge Congestion Insights pour un tracker donné.
     Retourne la liste brute d'intervalles telle que renvoyée par l'API.
     """
-    client = get_camara_client()
     payload = {
         "device": {"phoneNumber": phone_number},
         "webhook": {
@@ -42,7 +41,7 @@ async def fetch_congestion(
         },
         "subscriptionExpireTime": "2045-04-12T14:09:33+05:00",
     }
-    response = await client.post(CONGESTION_ENDPOINT, json=payload)
+    response = await camara_post(CONGESTION_ENDPOINT, payload)
     return response if isinstance(response, list) else response.get("data", [])
 
 

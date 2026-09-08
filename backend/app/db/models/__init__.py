@@ -17,6 +17,9 @@ from app.db.models.security_checks import SecurityCheck
 from app.db.models.tracker_locations import TrackerLocation
 from app.db.models.trackers import Tracker
 from app.db.models.users import User
+from app.db.models.email_verification_codes import EmailVerificationCode
+from app.db.models.organization_documents import OrganizationDocument
+from app.db.models.account_invitations import AccountInvitation
 
 __all__ = [
     "Organization",
@@ -38,4 +41,7 @@ __all__ = [
     "Alert",
     "NetworkAction",
     "AuditLog",
+    "EmailVerificationCode",
+    "OrganizationDocument",
+    "AccountInvitation"
 ]

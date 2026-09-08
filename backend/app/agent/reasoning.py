@@ -97,7 +97,7 @@ API_KEY_ENV = "GEMINI_API_KEY"
 #: Modèle par défaut, surchargeable sans toucher au code via LLM_MODEL.
 #: `gemini-1.5-flash` est une alternative plus rapide et moins coûteuse, utile
 #: pour une démonstration en direct.
-DEFAULT_MODEL = "gemini-1.5-pro"
+DEFAULT_MODEL = "gemini-3.5-flash"
 
 #: Température basse : on veut une justification stable et reproductible, pas de
 #: créativité. Deux exécutions sur le même incident doivent se ressembler.

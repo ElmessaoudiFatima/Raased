@@ -1,36 +1,109 @@
-# Raased — Base de données 
-## 1. `organizations`
+# Raased — Base de données (v3 — avec inscription manager + vérification email)
 
-**Rôle :** représente une entreprise cliente de Raased (ex: une société de transport).
+> Mise à jour intégrant le nouveau flux d'auto-inscription des managers
+> (formulaire Company → Manager → Verification → Documents).
+> Changements marqués 🆕 (nouvelle table) ou ✏️ (colonnes modifiées/ajoutées).
+
+---
+
+## 1. `organizations` ✏️
+
+**Rôle :** représente une entreprise cliente de Raased. Étendue pour stocker toutes les informations collectées à l'étape "Company" du formulaire d'inscription, et pour suivre le statut d'approbation de la demande (une inscription libre doit être validée avant d'être active).
 
 | Colonne | Type | Contraintes | Description |
 |---|---|---|---|
 | `id` | UUID | PK | Identifiant unique de l'organisation |
 | `name` | VARCHAR(150) | NOT NULL | Nom de l'entreprise |
+| `legal_id` | VARCHAR(50) | NOT NULL | Identifiant légal (ICE / RC) |
+| `country` | VARCHAR(100) | NOT NULL | Pays |
+| `city` | VARCHAR(100) | NOT NULL | Ville |
+| `phone` | VARCHAR(30) | NOT NULL | Téléphone de l'entreprise |
+| `address` | TEXT | NOT NULL | Adresse complète |
+| `website` | VARCHAR(255) | NULL | Site web (optionnel) |
+| `email` | VARCHAR(255) | NOT NULL | Email de contact de l'entreprise |
+| `status` | VARCHAR(20) | NOT NULL, DEFAULT 'PENDING' | 🆕 Statut de la demande : PENDING, APPROVED, REJECTED |
+| `reviewed_by` | UUID | FK → users.id, NULL | 🆕 Admin ayant traité la demande |
+| `reviewed_at` | TIMESTAMP | NULL | 🆕 Date de traitement de la demande |
+| `rejection_reason` | TEXT | NULL | 🆕 Motif en cas de rejet |
 | `created_at` | TIMESTAMP | NOT NULL | Date de création |
 | `updated_at` | TIMESTAMP | NOT NULL | Dernière modification |
 
 ---
 
-## 2. `users`
+## 2. `users` ✏️
 
-**Rôle :** les personnes qui utilisent la plateforme (admin, manager, chauffeur).
+**Rôle :** les personnes qui utilisent la plateforme (admin, manager, chauffeur). Étendue pour stocker les champs collectés à l'étape "Manager" du formulaire, et pour suivre la vérification de l'email.
 
 | Colonne | Type | Contraintes | Description |
 |---|---|---|---|
 | `id` | UUID | PK | Identifiant utilisateur |
 | `organization_id` | UUID | FK → organizations.id | Entreprise de l'utilisateur |
-| `name` | VARCHAR(150) | NOT NULL | Nom |
+| `first_name` | VARCHAR(100) | NOT NULL | Prénom |
+| `last_name` | VARCHAR(100) | NOT NULL | Nom |
+| `job_title` | VARCHAR(100) | NULL | Fonction (PDG, Directeur...) |
+| `phone` | VARCHAR(30) | NULL | Téléphone professionnel |
 | `email` | VARCHAR(255) | UNIQUE, NOT NULL | Email |
-| `password` | TEXT | NOT NULL | Mot de passe chiffré |
+| `password` | TEXT | NULL | ✏️ Nullable — un driver invité n'a pas encore défini de mot de passe |
 | `role` | VARCHAR(30) | NOT NULL | ADMIN, MANAGER ou DRIVER |
+| `email_verified` | BOOLEAN | DEFAULT FALSE | Email vérifié (managers) |
+| `email_verified_at` | TIMESTAMP | NULL | Date de vérification |
+| `account_status` | VARCHAR(20) | NOT NULL, DEFAULT 'ACTIVE' | 🆕 INVITED, ACTIVE, DISABLED |
 | `is_active` | BOOLEAN | DEFAULT TRUE | Compte actif ou désactivé |
 | `created_at` | TIMESTAMP | NOT NULL | Date de création |
 | `updated_at` | TIMESTAMP | NOT NULL | Dernière modification |
 
 ---
+## X. `account_invitations` — 🆕
 
-## 3. `cargos`
+**Pourquoi :** quand un manager crée un compte driver, celui-ci ne doit pas connaître son mot de passe — cette table gère le lien d'invitation sécurisé (à usage unique) que le driver reçoit par email pour définir lui-même son mot de passe.
+
+**Rôle :** stocke chaque token d'invitation envoyé, sa date d'expiration, et s'il a déjà été utilisé.
+
+| Colonne | Type | Contraintes | Description |
+|---|---|---|---|
+| `id` | UUID | PK | Identifiant de l'invitation |
+| `user_id` | UUID | FK → users.id | Driver invité |
+| `token` | VARCHAR(255) | UNIQUE, NOT NULL | Token sécurisé inclus dans le lien email |
+| `expires_at` | TIMESTAMP | NOT NULL | Date limite de validité du lien |
+| `used_at` | TIMESTAMP | NULL | Date d'utilisation (NULL = pas encore utilisé) |
+| `created_at` | TIMESTAMP | NOT NULL | Date de création de l'invitation |
+---
+
+## 3. `email_verification_codes` — 🆕 
+
+**Pourquoi :** l'étape "Verification" du formulaire envoie un code à 6 chiffres par email, avec possibilité de le renvoyer. Une table séparée (plutôt que des colonnes sur `users`) permet de gérer proprement l'expiration, l'historique des tentatives, et le renvoi de code sans écraser l'ancien.
+
+**Rôle :** stocke chaque code envoyé à un utilisateur, sa date d'expiration, et s'il a été utilisé.
+
+| Colonne | Type | Contraintes | Description |
+|---|---|---|---|
+| `id` | UUID | PK | Identifiant du code |
+| `user_id` | UUID | FK → users.id | Utilisateur concerné |
+| `code` | VARCHAR(10) | NOT NULL | Code à 6 chiffres envoyé par email |
+| `expires_at` | TIMESTAMP | NOT NULL | Date limite de validité du code |
+| `verified_at` | TIMESTAMP | NULL | Date d'utilisation réussie (NULL = pas encore vérifié) |
+| `attempts` | INT | NOT NULL, DEFAULT 0 | Nombre de tentatives de saisie incorrectes |
+| `created_at` | TIMESTAMP | NOT NULL | Date d'envoi du code |
+
+---
+
+## 4. `organization_documents` — 🆕 
+
+**Pourquoi :** l'étape "Documents" du formulaire permet d'uploader (en option) un certificat d'entreprise et une pièce d'identité du responsable, utilisés uniquement pour la vérification manuelle de la demande d'inscription.
+
+**Rôle :** stocke les fichiers liés à une demande d'organisation.
+
+| Colonne | Type | Contraintes | Description |
+|---|---|---|---|
+| `id` | UUID | PK | Identifiant du document |
+| `organization_id` | UUID | FK → organizations.id | Organisation concernée |
+| `document_type` | VARCHAR(50) | NOT NULL | COMPANY_CERTIFICATE ou RESPONSIBLE_ID |
+| `file_url` | TEXT | NOT NULL | Emplacement du fichier stocké |
+| `uploaded_at` | TIMESTAMP | NOT NULL | Date d'upload |
+
+---
+
+## 5. `cargos`
 
 **Rôle :** une cargaison (marchandise) en cours de transport, avec son niveau de priorité/criticité.
 
@@ -50,9 +123,9 @@
 
 ---
 
-## 4. `trackers` 
+## 6. `trackers`
 
-**Rôle :** le dispositif physique (ligne mobile) attaché à une cargaison pour la suivre. 
+**Rôle :** le dispositif physique (ligne mobile) attaché à une cargaison pour la suivre.
 
 | Colonne | Type | Contraintes | Description |
 |---|---|---|---|
@@ -67,7 +140,7 @@
 
 ---
 
-## 5. `cargo_trackers` 
+## 7. `cargo_trackers`
 
 **Pourquoi :** un tracker (objet physique) est réutilisé sur plusieurs livraisons dans le temps. Sans cette table, on perd la trace de "quel tracker suivait quelle cargaison, à quel moment" — information essentielle en cas d'audit après un incident.
 
@@ -83,7 +156,7 @@
 
 ---
 
-## 6. `corridors`
+## 8. `corridors`
 
 **Rôle :** un itinéraire logistique surveillé (une route/autoroute entre deux villes), représenté comme une ligne sur la carte.
 
@@ -101,7 +174,7 @@
 
 ---
 
-## 7. `risk_zones`
+## 9. `risk_zones`
 
 **Rôle :** une zone géographique sensible à l'intérieur d'un corridor (frontière, port, douane, zone d'incident connu), représentée comme une surface sur la carte.
 
@@ -120,7 +193,7 @@
 
 ---
 
-## 8. `tracker_locations`
+## 10. `tracker_locations`
 
 **Rôle :** l'historique de toutes les positions successives d'un tracker (on ne l'écrase jamais, chaque nouvelle position est une nouvelle ligne).
 
@@ -135,11 +208,11 @@
 
 ---
 
-## 9. `corridor_congestion_baselines` 
+## 11. `corridor_congestion_baselines`
 
-**Pourquoi :** pour savoir si une congestion est "anormale", il faut d'abord savoir ce qui est "normal" à cet endroit et ce moment-là. Sans cette table, l'agent n'a rien à quoi comparer un nouveau signal.
+**Pourquoi :** pour savoir si une congestion est "anormale", il faut d'abord savoir ce qui est "normal" à cet endroit et ce moment-là.
 
-**Rôle :** une mémoire du niveau de congestion habituel pour chaque corridor, selon l'heure de la journée et le jour de la semaine (ex: "le lundi à 8h, ce corridor est normalement à un niveau moyen"). Recalculée régulièrement par une tâche automatique (voir note sur les jobs planifiés en bas de fichier).
+**Rôle :** une mémoire du niveau de congestion habituel pour chaque corridor, selon l'heure de la journée et le jour de la semaine.
 
 | Colonne | Type | Contraintes | Description |
 |---|---|---|---|
@@ -147,15 +220,15 @@
 | `corridor_id` | UUID | FK → corridors.id | Corridor concerné |
 | `hour_of_day` | SMALLINT | NOT NULL | Heure de la journée (0 à 23) |
 | `day_of_week` | SMALLINT | NOT NULL | Jour de la semaine (0 à 6) |
-| `typical_congestion_level` | VARCHAR(30) | NOT NULL | Niveau de congestion habituel à ce créneau (ex: Low, Medium, High) |
+| `typical_congestion_level` | VARCHAR(30) | NOT NULL | Niveau de congestion habituel à ce créneau |
 | `sample_count` | INT | NOT NULL | Nombre de mesures utilisées pour ce calcul |
 | `updated_at` | TIMESTAMP | NOT NULL | Date du dernier recalcul |
 
 ---
 
-## 10. `known_context_events` 
+## 12. `known_context_events`
 
-**Pourquoi :** le pitch du projet promet de distinguer une vraie perturbation d'une congestion normale due à un évènement connu (match de foot, festival, travaux). Sans cette table, l'agent n'a aucune source pour vérifier "est-ce qu'il se passe quelque chose de prévu ici aujourd'hui ?".
+**Pourquoi :** distinguer une vraie perturbation d'une congestion normale due à un évènement connu (match de foot, festival, travaux).
 
 **Rôle :** un calendrier des évènements connus qui peuvent expliquer une hausse de congestion sans qu'il s'agisse d'un incident.
 
@@ -170,7 +243,7 @@
 
 ---
 
-## 11. `congestion_events`
+## 13. `congestion_events`
 
 **Rôle :** chaque signal de congestion reçu depuis le réseau mobile (via CAMARA/Nokia) pour un tracker donné, à un instant donné.
 
@@ -179,7 +252,7 @@
 | `id` | BIGSERIAL | PK | Identifiant interne |
 | `tracker_id` | UUID | FK → trackers.id | Tracker concerné |
 | `corridor_id` | UUID | FK → corridors.id | Corridor concerné |
-| `congestion_level` | VARCHAR(30) | NOT NULL | Niveau de congestion renvoyé par l'API (ex: "Low", "Medium", "High") |
+| `congestion_level` | VARCHAR(30) | NOT NULL | Niveau de congestion (Low, Medium, High) |
 | `confidence_level` | DECIMAL(5,4) | NULL | Fiabilité du signal donnée par l'API |
 | `location` | GEOGRAPHY(POINT, 4326) | NULL | Position associée au signal |
 | `timestamp` | TIMESTAMP | NOT NULL | Moment du signal |
@@ -188,9 +261,7 @@
 
 ---
 
-## 12. `risk_assessments` 
-
-
+## 14. `risk_assessments`
 
 **Rôle :** le résultat de l'analyse de risque faite par l'agent pour un signal de congestion donné.
 
@@ -205,13 +276,13 @@
 | `risk_score` | DECIMAL(5,4) | NOT NULL | Score de risque calculé (0 à 1) |
 | `confidence_score` | DECIMAL(5,4) | NULL | Confiance dans cette évaluation |
 | `reason` | TEXT | NULL | Explication en langage naturel (générée par le LLM) |
-| `factors` | JSONB | NULL | Détail des facteurs pris en compte (voir explication JSONB en bas de fichier) |
-| `security_snapshot` | JSONB | NULL | Copie figée des résultats de sécurité (SIM swap, device swap...) au moment exact de la décision |
+| `factors` | JSONB | NULL | Détail des facteurs pris en compte |
+| `security_snapshot` | JSONB | NULL | Copie figée des résultats de sécurité au moment de la décision |
 | `created_at` | TIMESTAMP | NOT NULL | Date de l'évaluation |
 
 ---
 
-## 13. `agent_decisions`
+## 15. `agent_decisions`
 
 **Rôle :** l'action que l'agent a décidé de prendre suite à une évaluation de risque, et si un humain doit valider cette action.
 
@@ -221,7 +292,7 @@
 | `risk_assessment_id` | UUID | FK → risk_assessments.id | Évaluation à l'origine de la décision |
 | `tracker_id` | UUID | FK → trackers.id | Tracker concerné |
 | `cargo_id` | UUID | FK → cargos.id | Cargaison concernée |
-| `decision` | VARCHAR(40) | NOT NULL | Action décidée (MONITOR, ALERT, REROUTE, REQUEST_QOD, REQUEST_SLICING, ESCALATE_HUMAN) |
+| `decision` | VARCHAR(40) | NOT NULL | MONITOR, ALERT, REROUTE, REQUEST_QOD, REQUEST_SLICING, ESCALATE_HUMAN |
 | `reasoning_summary` | TEXT | NULL | Résumé explicatif de la décision |
 | `confidence` | DECIMAL(5,4) | NULL | Confiance dans la décision |
 | `requires_human_approval` | BOOLEAN | DEFAULT FALSE | Si un humain doit valider avant exécution |
@@ -231,9 +302,7 @@
 
 ---
 
-## 14. `route_suggestions` 
-
-**Pourquoi :** le pitch promet de "recommander des itinéraires alternatifs" en cas de risque, mais aucune table ne stockait cette information — on savait juste que la décision était `REROUTE`, sans savoir vers où.
+## 16. `route_suggestions`
 
 **Rôle :** stocke l'itinéraire alternatif que l'agent propose quand un corridor devient risqué.
 
@@ -244,14 +313,14 @@
 | `original_corridor_id` | UUID | FK → corridors.id | Corridor initialement emprunté |
 | `suggested_corridor_id` | UUID | FK → corridors.id | Corridor alternatif proposé |
 | `reason` | TEXT | NULL | Pourquoi ce nouvel itinéraire est proposé |
-| `accepted` | BOOLEAN | NULL | Si l'opérateur a accepté la suggestion (NULL = pas encore répondu) |
+| `accepted` | BOOLEAN | NULL | Si l'opérateur a accepté (NULL = pas encore répondu) |
 | `created_at` | TIMESTAMP | NOT NULL | Date de la suggestion |
 
 ---
 
-## 15. `security_checks`
+## 17. `security_checks`
 
-**Rôle :** l'historique de toutes les vérifications de sécurité faites sur un tracker (numéro vérifié, SIM changée, appareil remplacé).
+**Rôle :** l'historique de toutes les vérifications de sécurité faites sur un tracker.
 
 | Colonne | Type | Contraintes | Description |
 |---|---|---|---|
@@ -266,11 +335,9 @@
 
 ---
 
-## 16. `geofence_subscriptions` 
+## 18. `geofence_subscriptions`
 
-**Pourquoi :** Geofencing fait partie des 5 APIs CAMARA cœur du projet — elle fonctionne par abonnement (on demande à être notifié quand un tracker entre/sort d'une zone). Sans table dédiée, impossible de savoir quels abonnements sont actifs, ni de les annuler proprement.
-
-**Rôle  :** liste des "alertes automatiques" activées pour prévenir quand un tracker entre ou sort d'une zone surveillée.
+**Rôle :** liste des "alertes automatiques" activées pour prévenir quand un tracker entre ou sort d'une zone surveillée.
 
 | Colonne | Type | Contraintes | Description |
 |---|---|---|---|
@@ -285,9 +352,9 @@
 
 ---
 
-## 17. `alerts`
+## 19. `alerts`
 
-**Rôle :** les notifications envoyées  quand un risque est détecté.
+**Rôle :** les notifications envoyées quand un risque est détecté.
 
 | Colonne | Type | Contraintes | Description |
 |---|---|---|---|
@@ -306,7 +373,7 @@
 
 ---
 
-## 18. `network_actions`
+## 20. `network_actions`
 
 **Rôle :** trace chaque action envoyée aux APIs réseau (QoD ou Network Slicing) et son résultat.
 
@@ -325,9 +392,9 @@
 
 ---
 
-## 19. `audit_logs`
+## 21. `audit_logs`
 
-**Rôle :** le journal immuable de tout ce qui s'est passé d'important — pour pouvoir reconstituer et expliquer n'importe quelle décision après coup.
+**Rôle :** le journal immuable de tout ce qui s'est passé d'important.
 
 | Colonne | Type | Contraintes | Description |
 |---|---|---|---|
@@ -339,15 +406,13 @@
 | `entity_type` | VARCHAR(50) | NOT NULL | Type d'objet concerné |
 | `entity_id` | UUID | NULL | Identifiant de l'objet concerné |
 | `result` | VARCHAR(30) | NOT NULL | Résultat de l'action |
-| `correlation_id` | UUID | NULL | Identifiant permettant de relier toutes les étapes d'une même opération |
+| `correlation_id` | UUID | NULL | Identifiant reliant les étapes d'une même opération |
 | `payload_hash` | VARCHAR(128) | NULL | Empreinte (hash) pour vérifier l'intégrité des données |
 | `created_at` | TIMESTAMP | NOT NULL | Date de l'entrée |
 
 ---
 
-## 20. Index 
-
-**Pourquoi :** sans index, les requêtes deviennent lentes dès que le volume de données grandit — surtout pour les recherches géographiques (PostGIS) et les recherches par tracker + date.
+## 22. Index recommandés
 
 ```sql
 -- Index spatiaux (obligatoires pour des requêtes PostGIS rapides)
@@ -360,16 +425,18 @@ CREATE INDEX idx_congestion_events_geometry ON congestion_events USING GIST (loc
 CREATE INDEX idx_tracker_locations_tracker_time ON tracker_locations (tracker_id, timestamp DESC);
 CREATE INDEX idx_congestion_events_tracker_time ON congestion_events (tracker_id, timestamp DESC);
 CREATE INDEX idx_congestion_events_corridor_time ON congestion_events (corridor_id, timestamp DESC);
+
+-- Index pour le flux d'inscription
+CREATE INDEX idx_organizations_status ON organizations (status);
+CREATE INDEX idx_email_verification_codes_user ON email_verification_codes (user_id, expires_at DESC);
 ```
 
 ---
 
-## 21. Petit lexique (pour référence rapide)
+## 23. Petit lexique
 
-- **Cron / job planifié** : une tâche informatique programmée pour s'exécuter automatiquement à intervalles réguliers (ex: chaque nuit), sans intervention humaine. Utilisé ici pour recalculer `corridor_congestion_baselines` à partir de l'historique de `congestion_events`.
+- **Cron / job planifié** : une tâche informatique programmée pour s'exécuter automatiquement à intervalles réguliers, sans intervention humaine.
+- **JSONB** : un type de colonne PostgreSQL qui stocke des données flexibles en format JSON, optimisé pour la recherche.
+- **GiST** : un type d'index PostgreSQL spécialement conçu pour accélérer les recherches géographiques.
 
-- **JSONB** : un type de colonne PostgreSQL qui stocke des données flexibles en format JSON, mais de façon optimisée pour pouvoir les rechercher/interroger rapidement — utile quand la structure des données peut varier d'un enregistrement à l'autre.
-- **GiST** : un type d'index PostgreSQL spécialement conçu pour accélérer les recherches géographiques (ex: "quels trackers sont dans cette zone ?").
-
-
-
+---

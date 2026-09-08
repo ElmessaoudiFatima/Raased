@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Any
+from typing import Any, List
 
 import chromadb
 from chromadb.utils import embedding_functions
@@ -28,6 +28,22 @@ from chromadb.utils import embedding_functions
 from app.agent.state import AgentState, is_available
 
 logger = logging.getLogger(__name__)
+
+
+class _ZeroEmbeddingFunction:
+    """Fallback embedding function that returns zero vectors.
+    Used when the default embedding function cannot download the model (no internet).
+    """
+
+    def __init__(self, dimension: int = 384):
+        self.dimension = dimension
+
+    def __call__(self, input: List[str]) -> List[List[float]]:
+        # Return a zero vector for each input string
+        return [[0.0] * self.dimension for _ in input]
+
+    def embed_query(self, input: List[str]) -> List[List[float]]:
+        return self.__call__(input)
 
 # ---------------------------------------------------------------------------
 # Collection
@@ -116,9 +132,16 @@ class AgentMemory:
 
         self._client = chromadb.PersistentClient(path=persist_dir)
 
-        # Use ChromaDB's built-in embedding (sentence-transformers all-MiniLM-L6-v2)
-        # so no external API key is needed.
-        self._ef = embedding_functions.DefaultEmbeddingFunction()
+        # Try to use ChromaDB's built-in embedding (sentence-transformers all-MiniLM-L6-v2)
+        # Fallback to zero-vector embedding if download fails (no internet)
+        try:
+            self._ef = embedding_functions.DefaultEmbeddingFunction()
+            # Test the embedding function to see if it works
+            _ = self._ef(["test"])
+            logger.info("Using default embedding function")
+        except Exception as e:
+            logger.warning(f"Failed to load default embedding function: {e}. Using zero-vector fallback.")
+            self._ef = _ZeroEmbeddingFunction()
 
         self._collection = self._client.get_or_create_collection(
             name=_COLLECTION_NAME,

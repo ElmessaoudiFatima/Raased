@@ -1,0 +1,127 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import { AlertTriangle, BellRing, CheckCheck } from "lucide-react";
+import { Topbar } from "@/components/Topbar";
+import { Badge, Button, Card, EmptyState, Spinner } from "@/components/ui";
+import { useShell } from "@/components/ShellContext";
+import { useToast } from "@/components/Toasts";
+import { get, patch } from "@/lib/api";
+import { getUser } from "@/lib/auth";
+
+interface AlertRow {
+  id: string;
+  severity: string;
+  title: string;
+  message: string;
+  status: string;
+  cargo_reference?: string | null;
+  created_at?: string | null;
+}
+
+export default function AlertsPage() {
+  const { openMobileMenu } = useShell();
+  const { notify } = useToast();
+  const user = getUser();
+  const isDriver = user?.role === "DRIVER";
+  const [alerts, setAlerts] = useState<AlertRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [actionId, setActionId] = useState<string | null>(null);
+
+  const load = useCallback(() => {
+    const url = isDriver ? "/drivers/alerts" : "/managers/alerts";
+    get<{ alerts: AlertRow[] }>(url)
+      .then((d) => setAlerts(d.alerts))
+      .catch(() => notify("Impossible de charger les alertes.", "error"))
+      .finally(() => setLoading(false));
+  }, [isDriver, notify]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const acknowledge = async (id: string) => {
+    setActionId(id);
+    try {
+      const url = isDriver ? "/drivers/alerts" : "/managers/alerts";
+      await patch(`${url}/${id}/acknowledge`);
+      notify("Alerte prise en compte.");
+      load();
+    } catch (err) {
+      notify(err instanceof Error ? err.message : "Échec.", "error");
+    } finally {
+      setActionId(null);
+    }
+  };
+
+  const open = alerts.filter((a) => a.status === "OPEN");
+
+  return (
+    <div>
+      <Topbar
+        title="Alertes"
+        subtitle={`${open.length} alerte(s) ouverte(s)`}
+        onMenu={openMobileMenu}
+      />
+      <div className="p-6">
+        {loading ? (
+          <div className="flex h-40 items-center justify-center">
+            <Spinner className="h-7 w-7 text-raased-teal" />
+          </div>
+        ) : alerts.length === 0 ? (
+          <EmptyState
+            icon={<BellRing className="h-8 w-8" />}
+            title="Aucune alerte"
+            description="Les alertes générées par l'agent Raased apparaîtront ici."
+          />
+        ) : (
+          <div className="space-y-3">
+            {alerts.map((a) => (
+              <Card
+                key={a.id}
+                className={`p-5 ${a.status === "OPEN" ? "border-l-4 border-l-raased-alert" : ""}`}
+              >
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="flex min-w-0 items-start gap-3">
+                    <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-raased-alert/10 text-raased-alert">
+                      <AlertTriangle className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-bold text-raased-navy">{a.title}</p>
+                        <Badge value={a.severity} />
+                        {a.cargo_reference && (
+                          <span className="badge bg-slate-100 text-slate-500">
+                            {a.cargo_reference}
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-1 text-sm text-slate-500">{a.message}</p>
+                      <p className="mt-1 text-xs text-slate-400">
+                        {a.created_at
+                          ? new Date(a.created_at).toLocaleString("fr-FR")
+                          : ""}
+                        {" · "}
+                        <Badge value={a.status} />
+                      </p>
+                    </div>
+                  </div>
+                  {a.status === "OPEN" && (
+                    <Button
+                      variant="outline"
+                      loading={actionId === a.id}
+                      onClick={() => acknowledge(a.id)}
+                      className="shrink-0"
+                    >
+                      <CheckCheck className="h-4 w-4" /> Prendre en compte
+                    </Button>
+                  )}
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

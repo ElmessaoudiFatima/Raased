@@ -18,6 +18,40 @@ services:
       timeout: 5s
       retries: 5
 
+  platform-db:
+    image: postgres:16-alpine
+    platform: linux/amd64
+    container_name: raased-platform-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: raased
+      POSTGRES_PASSWORD: raased
+      POSTGRES_DB: raased_platform
+    ports:
+      - "5433:5432"
+    volumes:
+      - raased-platform-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U raased"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  flask-api:
+    platform: linux/amd64
+    build:
+      context: ..
+      dockerfile: infra/docker/flask-api.Dockerfile
+    container_name: raased-flask-api
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    depends_on:
+      platform-db:
+        condition: service_healthy
+    volumes:
+      - ../flask_api:/app
+
   backend:
     platform: linux/amd64
     build:
@@ -45,14 +79,15 @@ services:
     container_name: raased-frontend
     restart: unless-stopped
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8000/api/v1
+      NEXT_PUBLIC_API_URL: http://localhost:5000/api
     ports:
       - "3000:3000"
     depends_on:
-      - backend
+      - flask-api
     volumes:
       - ../frontend:/app
       - /app/node_modules
 
 volumes:
   raased-db-data:
+  raased-platform-db-data:

@@ -44,3 +44,4 @@ class Organization(Base):
     security_alerts: Mapped[list["SecurityAlert"]] = relationship(back_populates="organization")
     audit_logs: Mapped[list["AuditLog"]] = relationship(back_populates="organization")
     documents: Mapped[list["OrganizationDocument"]] = relationship(back_populates="organization")
+    corridors: Mapped[list["Corridor"]] = relationship(back_populates="organization", foreign_keys="Corridor.organization_id")

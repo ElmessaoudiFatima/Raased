@@ -4,16 +4,25 @@ Manager API — endpoints reserved for users with the MANAGER role.
 All routes are prefixed with /manager and require a valid JWT for a MANAGER account
 whose organisation has been APPROVED.
 """
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select
+from geoalchemy2.elements import WKTElement
+from geoalchemy2.functions import ST_AsGeoJSON
+from pydantic import BaseModel
+from shapely.geometry import shape as shapely_shape
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.db.models.corridors import Corridor
 from app.db.models.organizations import Organization
+from app.db.models.risk_zones import RiskZone
+from app.db.models.risk_assessments import RiskAssessment
+from app.db.models.agent_decisions import AgentDecision
+from app.db.models.cargos import Cargo
+from app.db.models.trackers import Tracker
 from app.db.models.users import User
 from app.db.session import get_db
 from app.api.deps import require_role
@@ -524,3 +533,411 @@ async def get_tracker_position(
             detail="No position data available for this tracker.",
         )
     return position
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Helpers — geometry
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _geojson_to_wkt(geojson: Dict[str, Any]) -> WKTElement:
+    """Convert a GeoJSON dict (Polygon) to a PostGIS WKTElement (SRID 4326)."""
+    try:
+        geom = shapely_shape(geojson)
+        return WKTElement(geom.wkt, srid=4326)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Géométrie GeoJSON invalide : {exc}",
+        )
+
+
+async def _get_corridor_for_manager(
+    db: AsyncSession,
+    corridor_id: UUID,
+    org_id: UUID,
+) -> Corridor:
+    """Return corridor owned by org_id, or raise 404."""
+    res = await db.execute(
+        select(Corridor).where(
+            Corridor.id == corridor_id,
+            Corridor.organization_id == org_id,
+        )
+    )
+    corridor = res.scalar_one_or_none()
+    if not corridor:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Corridor introuvable ou non accessible.",
+        )
+    return corridor
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Risk Zones
+# ─────────────────────────────────────────────────────────────────────────────
+
+class RiskZoneCreate(BaseModel):
+    name: str
+    type: str                        # e.g. ACCIDENT, FLOOD, ROADBLOCK, CRIME
+    risk_level: str                  # LOW | MEDIUM | HIGH | CRITICAL
+    geometry: Dict[str, Any]         # GeoJSON Polygon
+    description: Optional[str] = None
+    is_active: bool = True
+
+
+class RiskZoneUpdate(BaseModel):
+    name: Optional[str] = None
+    type: Optional[str] = None
+    risk_level: Optional[str] = None
+    geometry: Optional[Dict[str, Any]] = None
+    description: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
+def _zone_out(zone: RiskZone, geojson_str: Optional[str] = None) -> dict:
+    return {
+        "id": str(zone.id),
+        "corridor_id": str(zone.corridor_id),
+        "name": zone.name,
+        "type": zone.type,
+        "risk_level": zone.risk_level,
+        "description": zone.description,
+        "is_active": zone.is_active,
+        "geometry": geojson_str,
+        "created_at": zone.created_at.isoformat() if zone.created_at else None,
+        "updated_at": zone.updated_at.isoformat() if zone.updated_at else None,
+    }
+
+
+@router.post(
+    "/corridors/{corridor_id}/zones",
+    status_code=status.HTTP_201_CREATED,
+    summary="Créer une zone à risque dans un corridor",
+)
+async def create_risk_zone(
+    corridor_id: UUID,
+    payload: RiskZoneCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role("MANAGER")),
+):
+    """
+    Crée une zone à risque (polygone GeoJSON) associée à un corridor
+    appartenant à l'organisation du manager.
+    """
+    org_id = _require_org(current_user)
+    await _get_corridor_for_manager(db, corridor_id, org_id)
+
+    zone = RiskZone(
+        corridor_id=corridor_id,
+        name=payload.name,
+        type=payload.type.upper(),
+        risk_level=payload.risk_level.upper(),
+        geometry=_geojson_to_wkt(payload.geometry),
+        description=payload.description,
+        is_active=payload.is_active,
+    )
+    db.add(zone)
+    await db.commit()
+    await db.refresh(zone)
+
+    # Fetch geometry as GeoJSON string
+    geo_res = await db.execute(
+        select(ST_AsGeoJSON(RiskZone.geometry)).where(RiskZone.id == zone.id)
+    )
+    geojson_str = geo_res.scalar_one_or_none()
+    return _zone_out(zone, geojson_str)
+
+
+@router.get(
+    "/corridors/{corridor_id}/zones",
+    summary="Lister les zones à risque d'un corridor",
+)
+async def list_risk_zones(
+    corridor_id: UUID,
+    active_only: bool = Query(False),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role("MANAGER")),
+):
+    """Retourne toutes les zones à risque du corridor (filtrable par is_active)."""
+    org_id = _require_org(current_user)
+    await _get_corridor_for_manager(db, corridor_id, org_id)
+
+    stmt = select(RiskZone, ST_AsGeoJSON(RiskZone.geometry).label("geojson")).where(
+        RiskZone.corridor_id == corridor_id
+    )
+    if active_only:
+        stmt = stmt.where(RiskZone.is_active.is_(True))
+    stmt = stmt.order_by(RiskZone.created_at.desc())
+
+    res = await db.execute(stmt)
+    rows = res.all()
+    return {"zones": [_zone_out(zone, geojson) for zone, geojson in rows]}
+
+
+@router.get(
+    "/zones/{zone_id}",
+    summary="Détail d'une zone à risque",
+)
+async def get_risk_zone(
+    zone_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role("MANAGER")),
+):
+    """Retourne les détails d'une zone à risque accessible au manager."""
+    org_id = _require_org(current_user)
+
+    # Join via corridor to enforce org ownership
+    res = await db.execute(
+        select(RiskZone, ST_AsGeoJSON(RiskZone.geometry).label("geojson"))
+        .join(Corridor, RiskZone.corridor_id == Corridor.id)
+        .where(
+            RiskZone.id == zone_id,
+            Corridor.organization_id == org_id,
+        )
+    )
+    row = res.first()
+    if not row:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Zone introuvable.")
+    zone, geojson = row
+    return _zone_out(zone, geojson)
+
+
+@router.patch(
+    "/zones/{zone_id}",
+    summary="Modifier une zone à risque",
+)
+async def update_risk_zone(
+    zone_id: UUID,
+    payload: RiskZoneUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role("MANAGER")),
+):
+    """Met à jour les champs d'une zone à risque (tous optionnels)."""
+    org_id = _require_org(current_user)
+
+    res = await db.execute(
+        select(RiskZone)
+        .join(Corridor, RiskZone.corridor_id == Corridor.id)
+        .where(RiskZone.id == zone_id, Corridor.organization_id == org_id)
+    )
+    zone = res.scalar_one_or_none()
+    if not zone:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Zone introuvable.")
+
+    if payload.name is not None:
+        zone.name = payload.name
+    if payload.type is not None:
+        zone.type = payload.type.upper()
+    if payload.risk_level is not None:
+        zone.risk_level = payload.risk_level.upper()
+    if payload.description is not None:
+        zone.description = payload.description
+    if payload.is_active is not None:
+        zone.is_active = payload.is_active
+    if payload.geometry is not None:
+        zone.geometry = _geojson_to_wkt(payload.geometry)
+
+    await db.commit()
+    await db.refresh(zone)
+
+    geo_res = await db.execute(
+        select(ST_AsGeoJSON(RiskZone.geometry)).where(RiskZone.id == zone.id)
+    )
+    geojson_str = geo_res.scalar_one_or_none()
+    return _zone_out(zone, geojson_str)
+
+
+@router.delete(
+    "/zones/{zone_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Supprimer une zone à risque",
+)
+async def delete_risk_zone(
+    zone_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role("MANAGER")),
+):
+    """Supprime définitivement une zone à risque appartenant à l'organisation du manager."""
+    org_id = _require_org(current_user)
+
+    res = await db.execute(
+        select(RiskZone)
+        .join(Corridor, RiskZone.corridor_id == Corridor.id)
+        .where(RiskZone.id == zone_id, Corridor.organization_id == org_id)
+    )
+    zone = res.scalar_one_or_none()
+    if not zone:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Zone introuvable.")
+
+    await db.delete(zone)
+    await db.commit()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Risk Assessments (lecture seule)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _assessment_out(a: RiskAssessment) -> dict:
+    return {
+        "id": str(a.id),
+        "cargo_id": str(a.cargo_id),
+        "tracker_id": str(a.tracker_id),
+        "corridor_id": str(a.corridor_id),
+        "risk_level": a.risk_level,
+        "risk_score": float(a.risk_score) if a.risk_score is not None else None,
+        "confidence_score": float(a.confidence_score) if a.confidence_score is not None else None,
+        "reason": a.reason,
+        "factors": a.factors,
+        "created_at": a.created_at.isoformat() if a.created_at else None,
+    }
+
+
+@router.get(
+    "/risk-assessments",
+    summary="Lister les évaluations de risque de l'organisation",
+)
+async def list_risk_assessments(
+    risk_level: Optional[str] = Query(None, description="Filtrer par niveau : LOW | MEDIUM | HIGH | CRITICAL"),
+    limit: int = Query(50, ge=1, le=200),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role("MANAGER")),
+):
+    """
+    Retourne les évaluations de risque associées aux cargaisons de l'organisation,
+    par ordre chronologique décroissant.
+    """
+    org_id = _require_org(current_user)
+
+    stmt = (
+        select(RiskAssessment)
+        .join(Cargo, RiskAssessment.cargo_id == Cargo.id)
+        .where(Cargo.organization_id == org_id)
+        .order_by(RiskAssessment.created_at.desc())
+        .limit(limit)
+    )
+    if risk_level:
+        stmt = stmt.where(RiskAssessment.risk_level == risk_level.upper())
+
+    res = await db.execute(stmt)
+    assessments = res.scalars().all()
+    return {"risk_assessments": [_assessment_out(a) for a in assessments]}
+
+
+@router.get(
+    "/risk-assessments/{assessment_id}",
+    summary="Détail d'une évaluation de risque",
+)
+async def get_risk_assessment(
+    assessment_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role("MANAGER")),
+):
+    """Retourne une évaluation de risque, si elle concerne une cargaison de l'organisation."""
+    org_id = _require_org(current_user)
+
+    res = await db.execute(
+        select(RiskAssessment)
+        .join(Cargo, RiskAssessment.cargo_id == Cargo.id)
+        .where(
+            RiskAssessment.id == assessment_id,
+            Cargo.organization_id == org_id,
+        )
+    )
+    assessment = res.scalar_one_or_none()
+    if not assessment:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Évaluation de risque introuvable.",
+        )
+    return _assessment_out(assessment)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Agent Decisions (lecture seule — historique)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _decision_out(d: AgentDecision) -> dict:
+    if d.approved_by is not None:
+        approval_status = "APPROVED"
+    elif d.requires_human_approval:
+        approval_status = "PENDING_APPROVAL"
+    else:
+        approval_status = "AUTO_EXECUTED"
+
+    return {
+        "id": str(d.id),
+        "cargo_id": str(d.cargo_id),
+        "tracker_id": str(d.tracker_id),
+        "risk_assessment_id": str(d.risk_assessment_id),
+        "decision": d.decision,
+        "reasoning_summary": d.reasoning_summary,
+        "confidence": float(d.confidence) if d.confidence is not None else None,
+        "requires_human_approval": d.requires_human_approval,
+        "approval_status": approval_status,
+        "approved_by": str(d.approved_by) if d.approved_by else None,
+        "approved_at": d.approved_at.isoformat() if d.approved_at else None,
+        "created_at": d.created_at.isoformat() if d.created_at else None,
+    }
+
+
+@router.get(
+    "/agent-decisions",
+    summary="Historique des décisions de l'agent IA",
+)
+async def list_agent_decisions(
+    decision_type: Optional[str] = Query(None, description="Filtrer par type de décision"),
+    requires_approval: Optional[bool] = Query(None, description="Filtrer par approbation requise"),
+    limit: int = Query(50, ge=1, le=200),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role("MANAGER")),
+):
+    """
+    Retourne l'historique des décisions prises par l'agent IA pour les cargaisons
+    de l'organisation, par ordre chronologique décroissant.
+    """
+    org_id = _require_org(current_user)
+
+    stmt = (
+        select(AgentDecision)
+        .join(Cargo, AgentDecision.cargo_id == Cargo.id)
+        .where(Cargo.organization_id == org_id)
+        .order_by(AgentDecision.created_at.desc())
+        .limit(limit)
+    )
+    if decision_type:
+        stmt = stmt.where(AgentDecision.decision == decision_type.upper())
+    if requires_approval is not None:
+        stmt = stmt.where(AgentDecision.requires_human_approval.is_(requires_approval))
+
+    res = await db.execute(stmt)
+    decisions = res.scalars().all()
+    return {"agent_decisions": [_decision_out(d) for d in decisions]}
+
+
+@router.get(
+    "/agent-decisions/{decision_id}",
+    summary="Détail d'une décision de l'agent IA",
+)
+async def get_agent_decision(
+    decision_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role("MANAGER")),
+):
+    """Retourne le détail d'une décision de l'agent, si elle concerne une cargaison de l'organisation."""
+    org_id = _require_org(current_user)
+
+    res = await db.execute(
+        select(AgentDecision)
+        .join(Cargo, AgentDecision.cargo_id == Cargo.id)
+        .where(
+            AgentDecision.id == decision_id,
+            Cargo.organization_id == org_id,
+        )
+    )
+    decision = res.scalar_one_or_none()
+    if not decision:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Décision introuvable.",
+        )
+    return _decision_out(decision)

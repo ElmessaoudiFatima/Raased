@@ -93,6 +93,25 @@ def build_situation_text(state: AgentState) -> str:
         if is_available(state, "incident_severity"):
             parts.append(f"Incident severity: {state['incident_severity']}")
 
+    # `security_alerts` est une expérience de sécurité, pas une copie de la
+    # table PostgreSQL : seules les caractéristiques qui ont influencé ce cycle
+    # sont ajoutées au document sémantique. Aucun message, identifiant, payload
+    # ou résultat d'API n'est dupliqué dans ChromaDB.
+    alerts = state.get("unresolved_security_alerts")
+    if isinstance(alerts, list) and alerts:
+        for alert in alerts:
+            if not isinstance(alert, dict):
+                continue
+            details = []
+            if alert.get("check_type") is not None:
+                details.append(f"type={alert['check_type']}")
+            if alert.get("severity") is not None:
+                details.append(f"severity={alert['severity']}")
+            if alert.get("status") is not None:
+                details.append(f"status={alert['status']}")
+            if details:
+                parts.append("Unresolved security alert: " + ", ".join(details))
+
     if is_available(state, "risk_level"):
         parts.append(f"Risk level: {state['risk_level']}")
     if is_available(state, "risk_score"):

@@ -1,11 +1,14 @@
 import axios from "axios";
 
 export const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+
+export const BACKEND_URL = API_URL.replace(/\/api\/?$/, "");
 
 export interface ApiErrorData {
   error?: string;
   message?: string;
+  detail?: string | Array<{ msg?: string }>;
 }
 
 export class ApiError extends Error {
@@ -13,7 +16,17 @@ export class ApiError extends Error {
   data: ApiErrorData;
 
   constructor(status: number, data: ApiErrorData) {
-    super(data.error || data.message || "Une erreur est survenue");
+    let msg = "Une erreur est survenue";
+    if (typeof data?.detail === "string") {
+      msg = data.detail;
+    } else if (Array.isArray(data?.detail) && data.detail[0]?.msg) {
+      msg = data.detail[0].msg;
+    } else if (data?.error) {
+      msg = data.error;
+    } else if (data?.message) {
+      msg = data.message;
+    }
+    super(msg);
     this.status = status;
     this.data = data;
   }

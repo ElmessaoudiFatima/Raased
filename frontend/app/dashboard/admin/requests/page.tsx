@@ -22,7 +22,7 @@ import { Topbar } from "@/components/Topbar";
 import { Badge, Button, Card, EmptyState, Modal, Spinner } from "@/components/ui";
 import { useShell } from "@/components/ShellContext";
 import { useToast } from "@/components/Toasts";
-import { get, patch } from "@/lib/api";
+import { get, patch, BACKEND_URL } from "@/lib/api";
 
 interface OrgRequest {
   id: string;
@@ -72,8 +72,8 @@ export default function AdminRequestsPage() {
 
   const load = () => {
     setLoading(true);
-    get<{ organizations: OrgRequest[] }>("/admin/organizations?status=PENDING")
-      .then((d) => setRequests(d.organizations))
+    get<any>("/admin/organizations?status=PENDING")
+      .then((d) => setRequests(Array.isArray(d) ? d : (d?.organizations ?? [])))
       .catch(() => notify("Impossible de charger les demandes.", "error"))
       .finally(() => setLoading(false));
   };
@@ -83,14 +83,15 @@ export default function AdminRequestsPage() {
   const openInspect = async (orgId: string) => {
     setInspectLoading(true);
     try {
-      const data = await get<{ organization: OrgDetail }>(`/admin/organizations/${orgId}`);
-      setSelectedOrg(data.organization);
+      const data = await get<any>(`/admin/organizations/${orgId}`);
+      setSelectedOrg(data?.organization ?? data);
     } catch {
       notify("Impossible de charger les détails.", "error");
     } finally {
       setInspectLoading(false);
     }
   };
+
 
   const approve = async (orgId: string, orgName: string) => {
     setActing(true);
@@ -136,7 +137,7 @@ export default function AdminRequestsPage() {
       <div className="p-6 space-y-6">
         <div className="flex items-center justify-between">
           <p className="text-sm text-slate-400">
-            {requests.length} demande(s) en attente d'approbation
+            {(requests || []).length} demande(s) en attente d'approbation
           </p>
           <Button variant="outline" size="sm" onClick={load} loading={loading}>
             <RefreshCw className="h-3.5 w-3.5 mr-1" /> Actualiser
@@ -147,7 +148,7 @@ export default function AdminRequestsPage() {
           <div className="flex h-64 items-center justify-center">
             <Spinner />
           </div>
-        ) : requests.length === 0 ? (
+        ) : (requests || []).length === 0 ? (
           <Card className="p-8 border-slate-800 bg-[#0f172a]">
             <EmptyState
               icon={<CheckCircle2 className="h-10 w-10 text-emerald-400" />}
@@ -157,7 +158,8 @@ export default function AdminRequestsPage() {
           </Card>
         ) : (
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            {requests.map((org) => (
+            {(requests || []).map((org) => (
+
               <Card key={org.id} className="p-6 border-slate-800 bg-[#0f172a] space-y-5 shadow-lg">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3">
@@ -288,7 +290,7 @@ export default function AdminRequestsPage() {
                         </div>
                       </div>
                       <a
-                        href={`http://localhost:5000${d.download_url}`}
+                        href={`${BACKEND_URL}${d.download_url}`}
                         target="_blank"
                         rel="noreferrer"
                         className="inline-flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-1 text-xs font-medium text-slate-200 hover:bg-slate-700"

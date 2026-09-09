@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     ENV: str = "development"
     DEBUG: bool = True
     API_V1_PREFIX: str = "/api/v1"
-    FRONTEND_URL: str = "https://app.raased.ma"
+    FRONTEND_URL: str = "http://localhost:3000"
 
     # --- Database ---
     DATABASE_URL: str = "postgresql+asyncpg://raased:raased@localhost:5432/raased"

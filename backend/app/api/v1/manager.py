@@ -1,4 +1,4 @@
-﻿"""
+"""
 Manager API — endpoints reserved for users with the MANAGER role.
 
 All routes are prefixed with /manager and require a valid JWT for a MANAGER account
@@ -20,9 +20,17 @@ from app.api.deps import require_role
 from app.schemas.auth import DriverCreate, DriverCreateResponse
 from app.schemas.corridor import CorridorCreate, CorridorOut, CorridorUpdate
 from app.schemas.cargo import CargoCreate, CargoOut, CargoStatusUpdate, CargoUpdate
+from app.schemas.tracker import (
+    TrackerCreate,
+    TrackerOut,
+    TrackerUpdate,
+    TrackerAssign,
+    CargoTrackerOut,
+    TrackerLocationOut,
+)
 from app.services.auth_service import create_driver
 from app.services.email_service import send_invitation_email
-from app.services import corridor_service, cargo_service
+from app.services import corridor_service, cargo_service, tracker_service
 
 router = APIRouter(
     prefix="/manager",
@@ -351,3 +359,168 @@ async def archive_cargo(
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
     return cargo
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Trackers
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.post(
+    "/trackers",
+    response_model=TrackerOut,
+    status_code=status.HTTP_201_CREATED,
+    summary="Register a new tracker device",
+)
+async def register_tracker(
+    payload: TrackerCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role("MANAGER")),
+):
+    """
+    Registers a new GPS/cellular tracker device for the manager's organisation.
+    The device_id (IMEI or similar) must be globally unique.
+    """
+    org_id = _require_org(current_user)
+    try:
+        tracker = await tracker_service.create_tracker(db, org_id, payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+    return tracker
+
+
+@router.get(
+    "/trackers",
+    response_model=List[TrackerOut],
+    summary="List trackers for the manager's organisation",
+)
+async def list_trackers(
+    status_filter: Optional[str] = Query(
+        None,
+        alias="status",
+        description="Filter by status: ACTIVE | INACTIVE | ASSIGNED | MAINTENANCE",
+    ),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role("MANAGER")),
+):
+    """Returns all trackers registered by the manager's organisation."""
+    org_id = _require_org(current_user)
+    trackers = await tracker_service.list_trackers(db, org_id, status_filter=status_filter)
+    return trackers
+
+
+@router.get(
+    "/trackers/{tracker_id}",
+    response_model=TrackerOut,
+    summary="Get details of a specific tracker",
+)
+async def get_tracker(
+    tracker_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role("MANAGER")),
+):
+    """Returns details of a tracker owned by the manager's organisation."""
+    org_id = _require_org(current_user)
+    tracker = await tracker_service.get_tracker(db, tracker_id, org_id)
+    if not tracker:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tracker not found.")
+    return tracker
+
+
+@router.patch(
+    "/trackers/{tracker_id}",
+    response_model=TrackerOut,
+    summary="Update a tracker",
+)
+async def update_tracker(
+    tracker_id: UUID,
+    payload: TrackerUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role("MANAGER")),
+):
+    """Update the MSISDN or status of a registered tracker."""
+    org_id = _require_org(current_user)
+    tracker = await tracker_service.get_tracker(db, tracker_id, org_id)
+    if not tracker:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tracker not found.")
+    tracker = await tracker_service.update_tracker(db, tracker, payload)
+    return tracker
+
+
+@router.post(
+    "/trackers/{tracker_id}/assign",
+    response_model=CargoTrackerOut,
+    status_code=status.HTTP_201_CREATED,
+    summary="Assign a tracker to a cargo",
+)
+async def assign_tracker(
+    tracker_id: UUID,
+    payload: TrackerAssign,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role("MANAGER")),
+):
+    """
+    Assigns a tracker to a cargo shipment.
+    The tracker must be ACTIVE and not already assigned to another cargo.
+    """
+    org_id = _require_org(current_user)
+    tracker = await tracker_service.get_tracker(db, tracker_id, org_id)
+    if not tracker:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tracker not found.")
+    try:
+        assignment = await tracker_service.assign_tracker_to_cargo(db, tracker, payload.cargo_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+    return assignment
+
+
+@router.post(
+    "/trackers/{tracker_id}/unassign",
+    response_model=CargoTrackerOut,
+    summary="Remove a tracker from a cargo",
+)
+async def unassign_tracker(
+    tracker_id: UUID,
+    payload: TrackerAssign,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role("MANAGER")),
+):
+    """
+    Removes (unassigns) a tracker from a cargo by recording the unassigned_at timestamp.
+    The tracker status reverts to ACTIVE.
+    """
+    org_id = _require_org(current_user)
+    tracker = await tracker_service.get_tracker(db, tracker_id, org_id)
+    if not tracker:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tracker not found.")
+    try:
+        assignment = await tracker_service.remove_tracker_from_cargo(db, tracker, payload.cargo_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    return assignment
+
+
+@router.get(
+    "/trackers/{tracker_id}/position",
+    response_model=TrackerLocationOut,
+    summary="Get the last known position of a tracker",
+)
+async def get_tracker_position(
+    tracker_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role("MANAGER")),
+):
+    """
+    Returns the most recent recorded GPS position of the tracker.
+    Returns 404 if no position data has been recorded yet.
+    """
+    org_id = _require_org(current_user)
+    tracker = await tracker_service.get_tracker(db, tracker_id, org_id)
+    if not tracker:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tracker not found.")
+    position = await tracker_service.get_last_position(db, tracker_id)
+    if position is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No position data available for this tracker.",
+        )
+    return position

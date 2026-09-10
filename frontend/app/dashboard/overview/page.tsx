@@ -51,22 +51,22 @@ export default function ManagerOverview() {
     get<{ stats: OverviewStats }>("/managers/overview")
       .then((d) => setStats(d.stats))
       .catch(() => {});
-    get<{ cargos: { reference: string; status: string }[] }>("/managers/cargos")
-      .then((d) => setCargos(d.cargos))
-      .catch(() => {});
+    get<any>("/managers/cargos")
+      .then((d) => setCargos(Array.isArray(d) ? d : (d?.cargos ?? [])))
+      .catch(() => setCargos([]));
     get<{ alerts: { id: string; severity: string; title: string; message: string; status: string }[] }>(
       "/managers/alerts"
     )
-      .then((d) => setAlerts(d.alerts.slice(0, 5)))
-      .catch(() => {});
+      .then((d) => setAlerts((Array.isArray(d) ? d : (d?.alerts ?? [])).slice(0, 5)))
+      .catch(() => setAlerts([]));
     get<{ organization: { name: string } | null }>("/managers/me")
-      .then((d) => d.organization && setOrgName(d.organization.name))
+      .then((d) => d?.organization && setOrgName(d.organization.name))
       .catch(() => {});
   }, []);
 
   const statusCounts = (() => {
     const map: Record<string, number> = {};
-    for (const c of cargos) map[c.status] = (map[c.status] || 0) + 1;
+    for (const c of (cargos || [])) map[c.status] = (map[c.status] || 0) + 1;
     return Object.entries(map).map(([name, value]) => ({ name, value }));
   })();
 

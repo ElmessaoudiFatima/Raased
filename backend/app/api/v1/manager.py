@@ -105,6 +105,37 @@ def _require_org(current_user: User) -> UUID:
     return current_user.organization_id
 
 
+import json as _json
+from geoalchemy2.shape import to_shape as _to_shape
+from app.schemas.corridor import LineStringGeometry as _LineStringGeometry
+
+
+def _corridor_out(corridor: Corridor) -> dict:
+    """Serialize a Corridor ORM object to a dict compatible with CorridorOut,
+    including the geometry as a GeoJSON LineString."""
+    geo = None
+    if corridor.geometry is not None:
+        try:
+            shape = _to_shape(corridor.geometry)
+            coords = [list(c) for c in shape.coords]
+            geo = _LineStringGeometry(type="LineString", coordinates=coords)
+        except Exception:
+            geo = None
+    return {
+        "id": corridor.id,
+        "organization_id": corridor.organization_id,
+        "name": corridor.name,
+        "origin": corridor.origin,
+        "destination": corridor.destination,
+        "risk_level": corridor.risk_level,
+        "is_active": corridor.is_active,
+        "created_at": corridor.created_at,
+        "updated_at": corridor.updated_at,
+        "geometry": geo,
+    }
+
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Drivers
 # ─────────────────────────────────────────────────────────────────────────────
@@ -530,7 +561,7 @@ async def create_corridor(
     """
     org_id = _require_org(current_user)
     corridor = await corridor_service.create_corridor(db, org_id, payload)
-    return corridor
+    return _corridor_out(corridor)
 
 
 @router.get(
@@ -549,7 +580,7 @@ async def list_corridors(
     """
     org_id = _require_org(current_user)
     corridors = await corridor_service.list_corridors(db, org_id, active_only=active_only)
-    return corridors
+    return [_corridor_out(c) for c in corridors]
 
 
 @router.get(
@@ -570,7 +601,7 @@ async def get_corridor(
     corridor = await corridor_service.get_corridor(db, corridor_id, org_id)
     if not corridor:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Corridor not found.")
-    return corridor
+    return _corridor_out(corridor)
 
 
 @router.patch(
@@ -598,7 +629,7 @@ async def update_corridor(
             detail="You cannot modify a global corridor.",
         )
     corridor = await corridor_service.update_corridor(db, corridor, payload)
-    return corridor
+    return _corridor_out(corridor)
 
 
 @router.delete(

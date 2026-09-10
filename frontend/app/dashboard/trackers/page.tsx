@@ -28,8 +28,8 @@ export default function TrackersPage() {
   const [form, setForm] = useState({ device_id: "", vehicle_registration: "", msisdn: "" });
 
   const load = () => {
-    get<{ trackers: TrackerRow[] }>("/managers/trackers")
-      .then((d) => setTrackers(d.trackers))
+    get<any>("/managers/trackers")
+      .then((d) => setTrackers(Array.isArray(d) ? d : (d?.trackers ?? [])))
       .catch(() => notify("Impossible de charger les trackers.", "error"))
       .finally(() => setLoading(false));
   };

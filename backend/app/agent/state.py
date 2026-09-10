@@ -38,7 +38,8 @@ CORRESPONDANCE AVEC LE SCHÉMA POSTGRESQL RÉEL
 Les sous-structures ci-dessous sont calquées sur les colonnes réellement
 présentes dans `app/db/models/`. Aucun champ n'est inventé : si une donnée
 n'existe pas encore en base, elle n'apparaît pas ici, ou elle est documentée
-comme « non mappable aujourd'hui » (cas de `driver_id`).
+comme « non mappable aujourd'hui ». Un état ne conserve que les données
+opérationnelles ou dérivées nécessaires à un cycle SENTRY.
 """
 
 from __future__ import annotations
@@ -175,6 +176,54 @@ class NetworkCondition(TypedDict, total=False):
     active_slice_status: Optional[str]     # network_actions.status pour un slice en cours
 
 
+class SecurityAlertSnapshot(TypedDict, total=False):
+    """Alerte de sécurité non résolue concernant le tracker.
+
+    Source : table `security_alerts`. Une alerte peut ne pas avoir de
+    `security_check_id` : elle doit donc rester visible même si les contrôles
+    agrégés ne permettent pas de conclure. Le noeud d'enrichissement ne place
+    ici que les lignes dont `resolved_at IS NULL`; `None` signifie que cette
+    information n'a pas pu être recherchée et `[]` qu'aucune alerte non
+    résolue n'a été trouvée.
+    """
+
+    id: Optional[str]                 # security_alerts.id
+    check_type: Optional[str]         # security_alerts.check_type
+    severity: Optional[str]           # security_alerts.severity
+    status: Optional[str]             # security_alerts.status
+    created_at: Optional[str]         # security_alerts.created_at, ISO-8601
+    security_check_id: Optional[str]  # security_alerts.security_check_id (nullable)
+
+
+class CamaraRequestPlan(TypedDict, total=False):
+    """Demandes CAMARA explicites apportées par un déclencheur fiable."""
+
+    congestion: bool
+    location: bool
+    number_verification: bool
+    sim_swap: bool
+    device_swap: bool
+
+
+class QoDParameters(TypedDict, total=False):
+    """Paramètres réels requis par CAMARA QoD, fournis hors PostgreSQL."""
+
+    device_public_ip: str
+    device_private_ip: str
+    application_server_ip: str
+    qos_profile: str
+    duration: int
+
+
+class NetworkLocationArea(TypedDict, total=False):
+    """Zone réellement retournée par CAMARA Location Retrieval, jamais un GPS."""
+
+    latitude: Optional[float]
+    longitude: Optional[float]
+    radius_meters: Optional[float]
+    observed_at: Optional[str]
+
+
 class KnownContextSnapshot(TypedDict, total=False):
     """
     Événement de contexte connu (travaux, manifestation, fermeture planifiée).
@@ -224,15 +273,6 @@ class AgentState(TypedDict, total=False):
     seule notion de « trajet » réellement persistée. On ne crée pas d'identifiant
     synthétique."""
 
-    driver_id: Optional[str]
-    """`users.id` du chauffeur (role='DRIVER').
-
-    LACUNE DE SCHÉMA ASSUMÉE : aucune colonne du schéma actuel ne relie un
-    utilisateur DRIVER à un cargo ou à un tracker. Ce champ restera donc
-    toujours None jusqu'à l'ajout d'une clé étrangère (ex. `cargos.driver_id`)
-    ou d'une table d'affectation. Il est conservé ici parce que l'acteur
-    « chauffeur » existe dans le produit, mais il n'est PAS deviné."""
-
     organization_id: Optional[str]
     """`organizations.id`. Nécessaire au cloisonnement multi-tenant : un manager
     ne doit voir que les décisions de son organisation."""
@@ -279,6 +319,9 @@ class AgentState(TypedDict, total=False):
     base. Ne JAMAIS substituer l'origine, la destination ou un centroïde de
     corridor à une position inconnue."""
 
+    network_location_area: Optional[NetworkLocationArea]
+    """Zone CAMARA de localisation réseau, distincte d'une position ponctuelle."""
+
     corridor: Optional[CorridorSnapshot]
     """Corridor emprunté (`corridors`)."""
 
@@ -323,6 +366,14 @@ class AgentState(TypedDict, total=False):
     """Détail par type de contrôle, ex. {"SIM_SWAP": "PASSED", "DEVICE_SWAP": "FAILED"}.
     Construit depuis `security_checks.check_type` -> `security_checks.status`.
     Permet au dashboard admin de montrer QUEL contrôle a échoué."""
+
+    unresolved_security_alerts: Optional[list[SecurityAlertSnapshot]]
+    """Alertes `security_alerts` du tracker dont `resolved_at IS NULL`.
+
+    Cette information ne remplace pas `security_checks` : elle couvre aussi les
+    alertes sans contrôle lié. Elle est un signal de protection déterministe,
+    mais ses valeurs textuelles restent celles réellement stockées en base.
+    """
 
     # === RÉSULTAT DE L'ÉVALUATION DÉTERMINISTE ==============================
 
@@ -391,6 +442,21 @@ class AgentState(TypedDict, total=False):
     """True si une tranche réseau dédiée doit être demandée (CAMARA Network
     Slicing). Réponse structurelle et plus coûteuse : garantir la connectivité
     d'une opération critique dans la durée."""
+
+    camara_requests: Optional[CamaraRequestPlan]
+    """Plan explicite des appels de perception/confiance nécessaires."""
+
+    qod_parameters: Optional[QoDParameters]
+    """Paramètres QoD réels ; leur absence interdit toute demande QoD."""
+
+    slice_request_payload: Optional[dict[str, Any]]
+    """Payload complet et réel d'une demande CAMARA Network Slice."""
+
+    risk_assessment_id: Optional[str]
+    """Identifiant de `risk_assessments` créé pendant ce cycle."""
+
+    agent_decision_id: Optional[str]
+    """Identifiant de `agent_decisions` créé pendant ce cycle."""
 
     # === TRAÇABILITÉ / LACUNES ==============================================
 
@@ -536,6 +602,7 @@ def state_summary(state: AgentState) -> dict[str, Any]:
         "incident_detected",
         "incident_type",
         "incident_severity",
+        "unresolved_security_alerts",
         "risk_score",
         "risk_level",
         "risk_data_coverage",
@@ -546,6 +613,8 @@ def state_summary(state: AgentState) -> dict[str, Any]:
         "human_approved",
         "qod_required",
         "network_slice_required",
+        "risk_assessment_id",
+        "agent_decision_id",
         "missing_information",
         "llm_available",
         "evaluated_at",
@@ -555,12 +624,16 @@ def state_summary(state: AgentState) -> dict[str, Any]:
 
 __all__ = [
     "AgentState",
+    "CamaraRequestPlan",
     "CorridorSnapshot",
     "IncidentSnapshot",
     "KnownContextSnapshot",
     "LocationSnapshot",
     "NetworkCondition",
+    "NetworkLocationArea",
+    "QoDParameters",
     "RiskZoneSnapshot",
+    "SecurityAlertSnapshot",
     "compute_remaining_time",
     "create_initial_state",
     "is_available",

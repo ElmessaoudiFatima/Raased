@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     CAMARA_SANDBOX_MODE: bool = True
     CAMARA_WEBHOOK_SECRET: str = "CHANGE_ME"
     CAMARA_WEBHOOK_SINK_URL: str = ""
+    CAMARA_CONGESTION_NOTIFICATION_AUTH_TOKEN: str = ""
     CAMARA_WEBHOOK_VERIFY_SIGNATURE: bool = True
 
 

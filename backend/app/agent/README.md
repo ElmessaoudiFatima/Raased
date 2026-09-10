@@ -38,8 +38,8 @@ Conséquence directe : on peut répondre *« pourquoi cette décision ? »* en l
 | [`state.py`](state.py) | 572 | ✅ écrit | Contrat de données partagé entre les nœuds |
 | [`rules.py`](rules.py) | 1101 | ✅ écrit | Moteur de décision déterministe |
 | [`reasoning.py`](reasoning.py) | 820 | ✅ écrit | Couche d'explication (Gemini) |
-| [`nodes.py`](nodes.py) | 0 | ⬜ à écrire | Nœuds LangGraph — accès PostgreSQL |
-| [`graph.py`](graph.py) | 0 | ⬜ à écrire | Assemblage et compilation du graphe |
+| [`nodes.py`](nodes.py) | — | ✅ écrit | Nœuds LangGraph : contexte PostgreSQL, appels CAMARA conditionnels, persistance et mémoire |
+| [`graph.py`](graph.py) | — | ✅ écrit | Assemblage et compilation du graphe avec branches CAMARA et validation humaine |
 | `__init__.py` | 0 | — | Marqueur de package |
 | `.env` | — | 🔒 non versionné | `GEMINI_API_KEY` locale |
 
@@ -500,13 +500,13 @@ réelle — **sans qu'une ligne de ces trois fichiers ne change**.
 4. **Exposer les endpoints** dans `app/api/v1/agent.py` (le router existe, sans route).
 5. **Brancher CAMARA** dans `app/camara/` une fois les identifiants sandbox disponibles.
 
-### Lacune de schéma connue — `driver_id`
+### Lacune de schéma connue — affectation d'un chauffeur
 
 Aucune colonne du schéma actuel ne relie un utilisateur `DRIVER` à un cargo ou à un
-tracker. Le champ `AgentState["driver_id"]` restera donc `None` jusqu'à l'ajout d'une clé
-étrangère (`cargos.driver_id`) ou d'une table d'affectation. Il est **documenté plutôt
-que deviné** : l'acteur « chauffeur » existe dans le produit, mais la donnée n'existe pas
-encore en base.
+tracker. `AgentState` ne contient donc pas de `driver_id` : cette information ne sera
+ajoutée qu'avec une clé étrangère (`cargos.driver_id`) ou une table d'affectation. L'acteur
+« chauffeur » existe dans le produit, mais sa relation avec un transport n'est pas encore
+représentée en base.
 
 ---
 

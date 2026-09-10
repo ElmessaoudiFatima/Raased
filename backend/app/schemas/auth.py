@@ -17,9 +17,15 @@ class LoginRequest(BaseModel):
     password: str
 
 
-class TokenResponse(BaseModel):
-    access_token: str
-    token_type: str = "bearer"
+class UserOrganizationOut(BaseModel):
+    id: uuid.UUID
+    name: str
+    city: str
+    country: str
+    status: str
+
+    class Config:
+        from_attributes = True
 
 
 class UserOut(BaseModel):
@@ -31,12 +37,24 @@ class UserOut(BaseModel):
     job_title: str | None = None
     phone: str | None = None
     organization_id: uuid.UUID | None = None
+    organization: UserOrganizationOut | None = None
     is_active: bool
     email_verified: bool
     account_status: str
 
     class Config:
         from_attributes = True
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: UserOut
+
+
+class MeResponse(BaseModel):
+    user: UserOut
+
 
 
 # ─────────────────────────────────────────────
@@ -62,13 +80,13 @@ class ManagerInfo(BaseModel):
     job_title: str
     email: EmailStr                     # email professionnel (recevra l'OTP)
     phone: str
-    password: str
-    confirm_password: str
+    password: str | None = None
+    confirm_password: str | None = None
 
     @field_validator("confirm_password")
     @classmethod
     def passwords_match(cls, v, info):
-        if "password" in info.data and v != info.data["password"]:
+        if v is not None and "password" in info.data and v != info.data["password"]:
             raise ValueError("Les mots de passe ne correspondent pas")
         return v
 
@@ -85,11 +103,12 @@ class ManagerRegisterResponse(BaseModel):
     user_id: uuid.UUID
     organization_id: uuid.UUID
     email: EmailStr
+    dev_code: str | None = None
     message: str = "Un code de vérification a été envoyé à votre adresse email."
 
 
 # ─────────────────────────────────────────────
-# Vérification OTP (étape 3)
+# Vérification OTP & Finalisation inscription (étapes 3 & 4)
 # ─────────────────────────────────────────────
 
 class VerifyOTPRequest(BaseModel):
@@ -104,8 +123,49 @@ class VerifyOTPResponse(BaseModel):
     message: str
 
 
+class RegisterVerifyRequest(BaseModel):
+    user_id: uuid.UUID
+    code: str
+
+
+class RegisterVerifyResponse(BaseModel):
+    password_token: str
+    user_id: uuid.UUID
+    message: str = "E-mail vérifié. Définissez maintenant votre mot de passe."
+
+
+class RegisterCompleteRequest(BaseModel):
+    password_token: str
+    password: str
+    confirm_password: str
+
+    @field_validator("confirm_password")
+    @classmethod
+    def passwords_match(cls, v, info):
+        if "password" in info.data and v != info.data["password"]:
+            raise ValueError("Les mots de passe ne correspondent pas")
+        return v
+
+
+class RegisterCompleteResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: UserOut
+    message: str = "Compte Raased créé avec succès."
+
+
+class RegisterResendRequest(BaseModel):
+    user_id: uuid.UUID
+
+
+class RegisterResendResponse(BaseModel):
+    dev_code: str | None = None
+    message: str = "Un nouveau code de vérification vient d'être envoyé."
+
+
 class ResendOTPRequest(BaseModel):
     user_id: uuid.UUID
+
 
 
 # ─────────────────────────────────────────────
@@ -196,6 +256,8 @@ class DriverCreateResponse(BaseModel):
     account_status: str
     is_active: bool
     email_verified: bool
+    invitation_link: str | None = None
+    driver: dict | None = None
     message: str = "Compte conducteur créé et email d'invitation envoyé."
 
     class Config:
@@ -211,6 +273,7 @@ class ValidateInvitationResponse(BaseModel):
     first_name: str
     last_name: str
     email: EmailStr
+    role: str = "DRIVER"
     organization_name: str | None = None
 
 

@@ -1,0 +1,208 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --raased-navy: #0f1733;
+  --raased-teal: #0d7377;
+  --raased-teal-light: #12b3a8;
+  --raased-alert: #d64541;
+  --raased-bg: #f4f7fc;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background-color: var(--raased-bg);
+  color: #1e293b;
+  font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+@layer components {
+  .card {
+    @apply bg-white rounded-2xl border border-slate-200/70 shadow-sm;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .btn-primary {
+    @apply btn bg-raased-teal text-white hover:bg-raased-navy;
+  }
+
+  .btn-outline {
+    @apply btn border border-slate-300 bg-white text-slate-700 hover:bg-slate-50;
+  }
+
+  .btn-ghost {
+    @apply btn text-slate-600 hover:bg-slate-100;
+  }
+
+  .btn-danger {
+    @apply btn bg-raased-alert text-white hover:bg-red-700;
+  }
+
+  .input {
+    @apply w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-800 outline-none transition focus:border-raased-teal focus:ring-2 focus:ring-raased-teal/20 placeholder:text-slate-400;
+  }
+
+  .label {
+    @apply mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500;
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold;
+  }
+
+  .field-error {
+    @apply mt-1 text-xs font-medium text-red-600;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 12px !important;
+  font-family: inherit;
+}
+.leaflet-popup-content {
+  margin: 12px 16px !important;
+}
+.hero-grid {
+  background-image: linear-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+
+.paper-grid {
+  background-image: linear-gradient(rgba(15, 23, 51, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(15, 23, 51, 0.045) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+@layer components {
+  .rn-page {
+    @apply mx-auto w-full max-w-5xl px-6 py-10;
+  }
+
+  .rn-pill {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-bold text-slate-600 shadow-sm;
+  }
+
+  .rn-chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide;
+  }
+
+  .rn-tag {
+    @apply inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[11px] font-bold;
+  }
+
+  .rn-card {
+    @apply rounded-2xl border border-slate-200 bg-white shadow-[0_1px_2px_rgba(15,23,51,0.04),0_8px_24px_-12px_rgba(15,23,51,0.12)];
+  }
+
+  .rn-dot {
+    @apply inline-block h-2 w-2 rounded-full;
+  }
+
+  .rn-kbd {
+    @apply rounded-md border border-slate-200 bg-slate-50 px-1.5 py-0.5 font-mono text-[10px] text-slate-500;
+  }
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.9;
+  }
+  80%,
+  100% {
+    transform: scale(2.1);
+    opacity: 0;
+  }
+}
+
+.pulse-dot {
+  position: relative;
+}
+.pulse-dot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: inherit;
+  animation: pulse-ring 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes ticker-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ticker-in {
+  animation: ticker-in 0.35s ease both;
+}
+
+@keyframes orb-float-1 {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.22;
+  }
+  50% {
+    transform: translate(80px, 45px) scale(1.2);
+    opacity: 0.38;
+  }
+}
+
+@keyframes orb-float-2 {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.18;
+  }
+  50% {
+    transform: translate(-70px, -40px) scale(1.25);
+    opacity: 0.32;
+  }
+}
+
+@keyframes grid-drift {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 72px 72px;
+  }
+}
+
+.animate-orb-1 {
+  animation: orb-float-1 14s ease-in-out infinite;
+}
+
+.animate-orb-2 {
+  animation: orb-float-2 18s ease-in-out infinite alternate;
+}
+
+.animate-grid-drift {
+  animation: grid-drift 28s linear infinite;
+}

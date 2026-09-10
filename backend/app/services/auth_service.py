@@ -14,8 +14,15 @@ from uuid import UUID
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
-from app.core.security import hash_password, verify_password
+
+from app.core.security import (
+    create_password_token,
+    decode_access_token,
+    hash_password,
+    verify_password,
+)
 from app.db.models.account_invitations import AccountInvitation
 from app.db.models.email_verification_codes import EmailVerificationCode
 from app.db.models.organizations import Organization
@@ -58,7 +65,11 @@ async def _create_otp(db: AsyncSession, user_id: UUID) -> str:
 # ─────────────────────────────────────────────
 
 async def authenticate_user(db: AsyncSession, email: str, password: str) -> User | None:
-    result = await db.execute(select(User).where(User.email == email))
+    result = await db.execute(
+        select(User)
+        .options(selectinload(User.organization))
+        .where(User.email == email)
+    )
     user = result.scalar_one_or_none()
 
     if user is None or not user.is_active or user.password is None or user.account_status != "ACTIVE":
@@ -123,6 +134,7 @@ async def register_manager(
     await db.flush()   # obtenir org.id sans commit
 
     # 2. Créer le manager
+    has_pwd = bool(payload.manager.password)
     manager = User(
         organization_id=org.id,
         first_name=payload.manager.first_name,
@@ -130,10 +142,10 @@ async def register_manager(
         job_title=payload.manager.job_title,
         email=str(payload.manager.email),
         phone=payload.manager.phone,
-        password=hash_password(payload.manager.password),
+        password=hash_password(payload.manager.password) if has_pwd else None,
         role="MANAGER",
         email_verified=False,
-        account_status="ACTIVE",
+        account_status="ACTIVE" if has_pwd else "INVITED",
         is_active=True,
     )
     db.add(manager)
@@ -145,6 +157,50 @@ async def register_manager(
     await db.commit()
     await db.refresh(manager)
     return manager, otp_code
+
+
+async def complete_manager_registration(
+    db: AsyncSession,
+    password_token: str,
+    password: str,
+) -> User:
+    """
+    Valide le password_token, enregistre le mot de passe du manager,
+    et active son compte (account_status='ACTIVE', is_active=True).
+    """
+    token_payload = decode_access_token(password_token)
+    if not token_payload or token_payload.get("type") != "password":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Jeton de finalisation invalide ou expiré.",
+        )
+
+    user_id_str = token_payload.get("sub")
+    if not user_id_str:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Jeton invalide.",
+        )
+
+    result = await db.execute(select(User).where(User.id == UUID(user_id_str)))
+    user = result.scalar_one_or_none()
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Compte introuvable.",
+        )
+
+    user.password = hash_password(password)
+    user.account_status = "ACTIVE"
+    user.is_active = True
+    user.email_verified = True
+    if not user.email_verified_at:
+        user.email_verified_at = datetime.now(timezone.utc)
+
+    await db.commit()
+    await db.refresh(user)
+    return user
+
 
 
 # ─────────────────────────────────────────────

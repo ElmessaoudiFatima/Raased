@@ -1,0 +1,6 @@
+Collecting opentelemetry-api
+  Downloading opentelemetry_api-1.44.0-py3-none-any.whl.metadata (1.4 kB)
+Requirement already satisfied: typing-extensions>=4.5.0 in C:\Users\dell\AppData\Local\Programs\Python\Python311\Lib\site-packages (from opentelemetry-api) (4.16.0)
+Downloading opentelemetry_api-1.44.0-py3-none-any.whl (60 kB)
+Installing collected packages: opentelemetry-api
+Successfully installed opentelemetry-api-1.44.0

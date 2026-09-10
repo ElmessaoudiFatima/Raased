@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     ENV: str = "development"
     DEBUG: bool = True
     API_V1_PREFIX: str = "/api/v1"
-    FRONTEND_URL: str = "https://app.raased.ma"
+    FRONTEND_URL: str = "http://localhost:3000"
 
     # --- Database ---
     DATABASE_URL: str = "postgresql+asyncpg://raased:raased@localhost:5432/raased"
@@ -23,6 +23,8 @@ class Settings(BaseSettings):
     CAMARA_API_HOST: str = "network-as-code.nokia.rapidapi.com"
     CAMARA_SANDBOX_MODE: bool = True
     CAMARA_WEBHOOK_SECRET: str = "CHANGE_ME"
+    CAMARA_WEBHOOK_SINK_URL: str = ""
+    CAMARA_WEBHOOK_VERIFY_SIGNATURE: bool = True
 
 
     # --- Number Verification (OAuth 2.0 3-legged) ---
@@ -55,6 +57,11 @@ class Settings(BaseSettings):
     FALSE_POSITIVE_MAX_RATE: float = 0.15
 
 
+
+    # --- Sécurité : détection d'usurpation de position ---
+    POSITION_SPOOFING_THRESHOLD_KM: float = 5.0
+
+
     # Seuil interne au wrapper Congestion Insights (congestion.py) : filtre
     # appliqué DIRECTEMENT sur confidenceLevel brut renvoyé par CAMARA, échelle
     # entière 1-99 (non documentée publiquement, confirmée empiriquement en
@@ -62,9 +69,6 @@ class Settings(BaseSettings):
     # les deux variables ne partagent ni l'échelle ni le type, et les confondre
     # casse silencieusement soit le filtre de démo, soit rules.py.
     CAMARA_RAW_CONFIDENCE_MIN: int = 40
-
-    # --- Sécurité : détection d'usurpation de position ---
-    POSITION_SPOOFING_THRESHOLD_KM: float = 5.0
 
 
     # --- Email / SMTP ---

@@ -9,11 +9,14 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import FileResponse
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, require_role
+from app.db.models.organization_documents import OrganizationDocument
 from app.db.models.users import User
 from app.db.session import get_db
+
 from app.schemas.auth import (
     OrganizationDetailOut,
     OrganizationDocumentOut,
@@ -43,7 +46,6 @@ router = APIRouter(
 
 @router.get(
     "/organizations",
-    response_model=list[OrganizationOut],
     summary="List organizations (filterable by status)",
 )
 async def list_orgs(
@@ -59,7 +61,45 @@ async def list_orgs(
     Use `?status=PENDING` to list only pending registration requests.
     """
     orgs = await list_organizations(db, status=status)
-    return orgs
+    data = []
+    for org in orgs:
+        res_m = await db.execute(
+            select(User).where(User.organization_id == org.id, User.role == "MANAGER").limit(1)
+        )
+        mgr = res_m.scalar_one_or_none()
+
+        res_d = await db.execute(
+            select(func.count(OrganizationDocument.id)).where(OrganizationDocument.organization_id == org.id)
+        )
+        doc_count = res_d.scalar() or 0
+
+        item = {
+            "id": org.id,
+            "name": org.name,
+            "legal_id": org.legal_id,
+            "country": org.country,
+            "city": org.city,
+            "phone": org.phone,
+            "address": org.address,
+            "website": org.website,
+            "email": org.email,
+            "status": org.status,
+            "rejection_reason": org.rejection_reason,
+            "reviewed_at": org.reviewed_at,
+            "created_at": org.created_at,
+            "manager": {
+                "id": mgr.id,
+                "first_name": mgr.first_name,
+                "last_name": mgr.last_name,
+                "email": mgr.email,
+                "job_title": mgr.job_title,
+                "phone": mgr.phone,
+                "email_verified": mgr.email_verified,
+            } if mgr else None,
+            "documents_count": doc_count,
+        }
+        data.append(item)
+    return {"organizations": data}
 
 
 # ─────────────────────────────────────────────
@@ -68,7 +108,6 @@ async def list_orgs(
 
 @router.get(
     "/organizations/{org_id}",
-    response_model=OrganizationDetailOut,
     summary="Get organization details with manager and supporting documents",
 )
 async def get_org(org_id: UUID, db: AsyncSession = Depends(get_db)):
@@ -85,22 +124,45 @@ async def get_org(org_id: UUID, db: AsyncSession = Depends(get_db)):
     org, manager = result
 
     docs_out = [
-        OrganizationDocumentOut(
-            id=d.id,
-            organization_id=d.organization_id,
-            document_type=d.document_type,
-            file_url=d.file_url,
-            download_url=f"/api/v1/admin/documents/{d.id}/download",
-            uploaded_at=d.uploaded_at,
-        )
+        {
+            "id": d.id,
+            "organization_id": d.organization_id,
+            "document_type": d.document_type,
+            "file_url": d.file_url,
+            "download_url": f"/api/v1/admin/documents/{d.id}/download",
+            "uploaded_at": d.uploaded_at,
+        }
         for d in (org.documents or [])
     ]
 
-    return OrganizationDetailOut(
-        organization=OrganizationOut.model_validate(org),
-        manager=ManagerSummary.model_validate(manager) if manager else None,
-        documents=docs_out,
-    )
+    item = {
+        "id": org.id,
+        "name": org.name,
+        "legal_id": org.legal_id,
+        "country": org.country,
+        "city": org.city,
+        "phone": org.phone,
+        "address": org.address,
+        "website": org.website,
+        "email": org.email,
+        "status": org.status,
+        "rejection_reason": org.rejection_reason,
+        "reviewed_at": org.reviewed_at,
+        "created_at": org.created_at,
+        "manager": {
+            "id": manager.id,
+            "first_name": manager.first_name,
+            "last_name": manager.last_name,
+            "email": manager.email,
+            "job_title": manager.job_title,
+            "phone": manager.phone,
+            "email_verified": manager.email_verified,
+        } if manager else None,
+        "documents": docs_out,
+    }
+
+    return {"organization": item}
+
 
 
 # ─────────────────────────────────────────────

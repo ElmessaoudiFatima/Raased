@@ -35,3 +35,9 @@ def decode_access_token(token: str) -> dict[str, Any] | None:
         return jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
     except JWTError:
         return None
+
+
+def create_password_token(user_id: Any, expires_minutes: int = 15) -> str:
+    expire = datetime.now(timezone.utc) + timedelta(minutes=expires_minutes)
+    payload = {"sub": str(user_id), "type": "password", "exp": expire}
+    return jwt.encode(payload, settings.SECRET_KEY, algorithm=ALGORITHM)

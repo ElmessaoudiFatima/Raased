@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     ENV: str = "development"
     DEBUG: bool = True
     API_V1_PREFIX: str = "/api/v1"
-    FRONTEND_URL: str = "https://app.raased.ma"
+    FRONTEND_URL: str = "http://localhost:3000"
 
     # --- Database ---
     DATABASE_URL: str = "postgresql+asyncpg://raased:raased@localhost:5432/raased"
@@ -62,6 +62,8 @@ class Settings(BaseSettings):
     # --- Sécurité : détection d'usurpation de position ---
     POSITION_SPOOFING_THRESHOLD_KM: float = 5.0
 
+    # --- Météo (Open-Meteo) ---
+    WEATHER_CACHE_MINUTES: int = 20
 
     # Seuil interne au wrapper Congestion Insights (congestion.py) : filtre
     # appliqué DIRECTEMENT sur confidenceLevel brut renvoyé par CAMARA, échelle

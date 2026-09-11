@@ -26,9 +26,9 @@ def main() -> None:
 
     # 1. Créer un état initial avec quelques données factices (simulées)
     state: AgentState = create_initial_state()
-    state["trip_id"] = "TRIP-001"
-    state["cargo_id"] = "CARGO-001"
-    state["cargo_type"] = "pharmaceutique"
+    state["trip_id"] = "TRIP-002"
+    state["cargo_id"] = "CARGO-002"
+    state["cargo_type"] = "marchandise dangereuse"
     state["criticality"] = "HIGH"
     state["incident_detected"] = True
     state["incident_type"] = "temperature_breach"

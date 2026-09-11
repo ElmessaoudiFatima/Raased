@@ -23,11 +23,13 @@ def test_graph_compiles() -> None:
 @pytest.mark.asyncio
 async def test_graph_runs_minimal_state_with_isolated_nodes(monkeypatch) -> None:
     async def noop_node(state):
-        return {}
+        return {"evaluated_at": "test"}
 
     for name in (
         "load_context_node", "camara_perception_node", "trust_checks_node",
-        "rules_node", "reasoning_node", "persist_assessment_node",
+        "weather_node", "fuse_context_node",
+        "rules_node", "similar_cases_node", "reasoning_node",
+        "persist_assessment_node",
         "network_action_node", "memory_node",
     ):
         monkeypatch.setattr(graph_module, name, noop_node)

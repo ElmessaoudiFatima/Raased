@@ -7,6 +7,7 @@ export interface LiveTrip {
   reference: string;
   type: string;
   criticality: string;
+  status?: string;
   origin: string;
   destination: string;
   vehicle_registration?: string | null;
@@ -41,10 +42,10 @@ export interface MapViewProps {
   onTripFocus?: (ref: string) => void;
 }
 
-const MapCore = dynamic(import("@/components/MapCore"), {
+const MapCore = dynamic(() => import("@/components/MapCore"), {
   ssr: false,
   loading: () => (
-    <div className="flex h-full w-full items-center justify-center bg-slate-100 text-sm text-slate-500">
+    <div className="flex h-full w-full items-center justify-center bg-[#0a101d] text-sm text-slate-400">
       Chargement de la carte…
     </div>
   ),

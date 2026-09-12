@@ -182,7 +182,11 @@ async def complete_manager_registration(
             detail="Jeton invalide.",
         )
 
-    result = await db.execute(select(User).where(User.id == UUID(user_id_str)))
+    result = await db.execute(
+        select(User)
+        .options(selectinload(User.organization))
+        .where(User.id == UUID(user_id_str))
+    )
     user = result.scalar_one_or_none()
     if user is None:
         raise HTTPException(
@@ -198,8 +202,14 @@ async def complete_manager_registration(
         user.email_verified_at = datetime.now(timezone.utc)
 
     await db.commit()
-    await db.refresh(user)
-    return user
+
+    # Recharger l'utilisateur avec son organisation chargée explicitement
+    reloaded_result = await db.execute(
+        select(User)
+        .options(selectinload(User.organization))
+        .where(User.id == user.id)
+    )
+    return reloaded_result.scalar_one()
 
 
 

@@ -16,7 +16,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from geoalchemy2.elements import WKTElement
 from geoalchemy2.functions import ST_AsGeoJSON
 from shapely.geometry import shape as shapely_shape
-from sqlalchemy import select, delete, func
+from sqlalchemy import select, delete, func, or_
+from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
@@ -30,6 +31,7 @@ from app.db.models.trackers import Tracker
 from app.db.models.users import User
 from app.db.models.alerts import Alert
 from app.db.models.account_invitations import AccountInvitation
+from app.db.models.cargo_trackers import CargoTracker
 from app.db.session import get_db
 from app.api.deps import require_role
 from app.schemas.auth import DriverCreate, DriverCreateResponse
@@ -39,6 +41,7 @@ from app.schemas.tracker import (
     TrackerCreate,
     TrackerOut,
     TrackerUpdate,
+    TrackerMaintenanceUpdate,
     TrackerAssign,
     CargoTrackerOut,
     TrackerLocationOut,
@@ -678,7 +681,10 @@ async def create_cargo(
     Initial status is always PENDING.
     """
     org_id = _require_org(current_user)
-    cargo = await cargo_service.create_cargo(db, org_id, payload)
+    try:
+        cargo = await cargo_service.create_cargo(db, org_id, payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
     return cargo
 
 
@@ -742,7 +748,10 @@ async def update_cargo(
     cargo = await cargo_service.get_cargo(db, cargo_id, org_id)
     if not cargo:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cargo not found.")
-    cargo = await cargo_service.update_cargo(db, cargo, payload)
+    try:
+        cargo = await cargo_service.update_cargo(db, cargo, payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
     return cargo
 
 
@@ -965,6 +974,191 @@ async def get_tracker_position(
             detail="No position data available for this tracker.",
         )
     return position
+
+
+@router.get(
+    "/map/live",
+    summary="Get live fleet map data for the manager's organization",
+)
+async def get_live_map(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role("MANAGER")),
+):
+    """
+    Returns live tracking data for the connected manager's organization:
+    - All organization cargos with their corridor routes and real-time GPS positions
+    - Corridors (lines)
+    - Risk zones (polygons)
+    """
+    org_id = _require_org(current_user)
+
+    # 1. Corridors (Organization owned + global)
+    corridors_query = (
+        select(Corridor, ST_AsGeoJSON(Corridor.geometry).label("geojson"))
+        .where(
+            or_(
+                Corridor.organization_id == org_id,
+                Corridor.organization_id.is_(None),
+            ),
+            Corridor.is_active.is_(True),
+        )
+    )
+    corridors_res = await db.execute(corridors_query)
+    corridors_data = []
+    corridor_map = {}
+    corridor_ids = []
+
+    for corridor, geojson_str in corridors_res.all():
+        points = []
+        if geojson_str:
+            try:
+                geom = _json.loads(geojson_str)
+                # GeoJSON coordinates are [lon, lat] -> Leaflet requires [lat, lon]
+                points = [[float(p[1]), float(p[0])] for p in geom.get("coordinates", [])]
+            except Exception:
+                points = []
+
+        c_info = {
+            "id": str(corridor.id),
+            "name": corridor.name,
+            "origin": corridor.origin,
+            "destination": corridor.destination,
+            "risk_level": corridor.risk_level,
+            "points": points,
+        }
+        corridors_data.append(c_info)
+        corridor_map[corridor.id] = c_info
+        corridor_ids.append(corridor.id)
+
+    # 2. Risk Zones for these corridors
+    risk_zones_data = []
+    if corridor_ids:
+        zones_query = (
+            select(RiskZone, ST_AsGeoJSON(RiskZone.geometry).label("geojson"))
+            .where(
+                RiskZone.corridor_id.in_(corridor_ids),
+                RiskZone.is_active.is_(True),
+            )
+        )
+        zones_res = await db.execute(zones_query)
+        for zone, geojson_str in zones_res.all():
+            points = []
+            if geojson_str:
+                try:
+                    geom = _json.loads(geojson_str)
+                    coords = geom.get("coordinates", [])
+                    if coords:
+                        points = [[float(p[1]), float(p[0])] for p in coords[0]]
+                except Exception:
+                    points = []
+            risk_zones_data.append({
+                "id": str(zone.id),
+                "name": zone.name,
+                "type": zone.type,
+                "risk_level": zone.risk_level,
+                "points": points,
+            })
+
+    # 3. Cargos of the connected manager's organization
+    cargos_query = (
+        select(Cargo)
+        .options(
+            selectinload(Cargo.corridor),
+            selectinload(Cargo.cargo_trackers).selectinload(CargoTracker.tracker),
+        )
+        .where(Cargo.organization_id == org_id)
+        .order_by(Cargo.created_at.desc())
+    )
+    cargos_res = await db.execute(cargos_query)
+    cargos = cargos_res.scalars().all()
+
+    trips_data = []
+    for cargo in cargos:
+        # Route points from corridor
+        route_points = []
+        origin_str = "Origine"
+        dest_str = "Destination"
+        corridor_name = None
+
+        if cargo.corridor_id in corridor_map:
+            c_info = corridor_map[cargo.corridor_id]
+            route_points = c_info["points"]
+            origin_str = c_info["origin"]
+            dest_str = c_info["destination"]
+            corridor_name = c_info["name"]
+
+        # Find active tracker
+        active_tracker = None
+        for ct in cargo.cargo_trackers:
+            if ct.unassigned_at is None and ct.tracker:
+                active_tracker = ct.tracker
+                break
+
+        position = None
+        if active_tracker:
+            pos_dict = await tracker_service.get_last_position(db, active_tracker.id)
+            if pos_dict:
+                lat = float(pos_dict["latitude"])
+                lng = float(pos_dict["longitude"])
+                progress_pct = 65 if cargo.status == "IN_TRANSIT" else (100 if cargo.status == "DELIVERED" else 0)
+                eta_min = max(15, int((100 - progress_pct) * 2))
+                position = {
+                    "lat": lat,
+                    "lng": lng,
+                    "progress_pct": progress_pct,
+                    "eta_minutes": eta_min,
+                }
+
+        # If no GPS recorded yet but route exists, interpolate based on cargo status
+        if position is None and route_points:
+            if cargo.status == "IN_TRANSIT":
+                mid_idx = len(route_points) // 2
+                pt = route_points[mid_idx]
+                position = {
+                    "lat": pt[0],
+                    "lng": pt[1],
+                    "progress_pct": 50,
+                    "eta_minutes": 75,
+                }
+            elif cargo.status == "PENDING":
+                pt = route_points[0]
+                position = {
+                    "lat": pt[0],
+                    "lng": pt[1],
+                    "progress_pct": 0,
+                    "eta_minutes": 180,
+                }
+            elif cargo.status == "DELIVERED":
+                pt = route_points[-1]
+                position = {
+                    "lat": pt[0],
+                    "lng": pt[1],
+                    "progress_pct": 100,
+                    "eta_minutes": 0,
+                }
+
+        veh_reg = active_tracker.label or active_tracker.device_id if active_tracker else None
+
+        trips_data.append({
+            "cargo_id": str(cargo.id),
+            "reference": cargo.reference,
+            "type": cargo.type,
+            "criticality": cargo.criticality,
+            "status": cargo.status,
+            "origin": origin_str,
+            "destination": dest_str,
+            "corridor_name": corridor_name,
+            "vehicle_registration": veh_reg,
+            "driver": "Chauffeur assigné" if active_tracker else "Non assigné",
+            "route": route_points,
+            "position": position,
+        })
+
+    return {
+        "trips": trips_data,
+        "corridors": corridors_data,
+        "risk_zones": risk_zones_data,
+    }
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1546,3 +1740,19 @@ async def invite_co_manager(
         "message": "Invitation envoyée au gestionnaire.",
         "invitation_link": invitation_link,
     }
+@router.patch(
+    "/trackers/{tracker_id}/maintenance",
+    response_model=TrackerOut,
+    summary="Toggle maintenance mode for a tracker",
+)
+async def toggle_tracker_maintenance(
+    tracker_id: UUID,
+    payload: TrackerMaintenanceUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role("MANAGER")),
+):
+    org_id = _require_org(current_user)
+    tracker = await tracker_service.get_tracker(db, tracker_id, org_id)
+    if not tracker:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tracker not found.")
+    return await tracker_service.set_tracker_maintenance(db, tracker, payload.in_maintenance)

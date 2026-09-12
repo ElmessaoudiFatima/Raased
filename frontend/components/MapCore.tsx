@@ -56,15 +56,15 @@ const endIcon = L.divIcon({
   iconAnchor: [8, 8],
 });
 
-// Google Maps Tile URLs
-const GOOGLE_MAPS_TILES = {
+// Google Maps & Dark Map Tile URLs
+const GOOGLE_MAPS_TILES: Record<string, string> = {
   roadmap: "https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}",
-  satellite: "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
-  hybrid: "https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}",
+  satellite: "https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}",
   terrain: "https://mt1.google.com/vt/lyrs=p&x={x}&y={y}&z={z}",
+  dark: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
 };
 
-type MapType = "roadmap" | "hybrid" | "terrain";
+type MapType = "roadmap" | "satellite" | "terrain" | "dark";
 
 let lastFit: string | null = null;
 
@@ -89,9 +89,9 @@ export default function MapCore({
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
     const map = L.map(containerRef.current, {
-      zoomControl: false, // We render custom Google Maps style zoom controls
+      zoomControl: false,
       attributionControl: false,
-    }).setView([31.79, -7.09], zoom);
+    }).setView([32.5, -6.5], zoom);
 
     const tileLayer = L.tileLayer(GOOGLE_MAPS_TILES.roadmap, {
       maxZoom: 20,
@@ -102,14 +102,20 @@ export default function MapCore({
     layerRef.current = L.layerGroup().addTo(map);
     mapRef.current = map;
 
+    // Force size invalidation to make sure tiles fill the container
+    const t = setTimeout(() => {
+      map.invalidateSize();
+    }, 200);
+
     return () => {
+      clearTimeout(t);
       map.remove();
       mapRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Handle Map Type change (Roadmap, Satellite Hybrid, Terrain)
+  // Handle Map Type change
   const changeMapType = (type: MapType) => {
     setMapType(type);
     if (tileLayerRef.current && mapRef.current) {
@@ -127,11 +133,11 @@ export default function MapCore({
         .filter((t) => t.position)
         .map((t) => [t.position!.lat, t.position!.lng] as [number, number]);
       if (validPoints.length > 0) {
-        mapRef.current.fitBounds(L.latLngBounds(validPoints), { padding: [60, 60], maxZoom: 11 });
+        mapRef.current.fitBounds(L.latLngBounds(validPoints), { padding: [80, 80], maxZoom: 11 });
         return;
       }
     }
-    mapRef.current.setView([31.79, -7.09], 7);
+    mapRef.current.setView([32.5, -6.5], 7);
   };
 
   useEffect(() => {
@@ -244,37 +250,41 @@ export default function MapCore({
     const map = mapRef.current;
     if (!map) return;
     const trip = trips.find((t) => t.reference === fitRef);
-    if (!trip || !trip.route?.length) return;
+    if (!trip) return;
     if (lastFit === fitRef) return;
     lastFit = fitRef;
-    map.flyToBounds(L.latLngBounds(trip.route as L.LatLngExpression[]), {
-      padding: [50, 50],
-      maxZoom: 12,
-    });
+    if (trip.position) {
+      map.flyTo([trip.position.lat, trip.position.lng], 12, { duration: 1.2 });
+    } else if (trip.route?.length) {
+      map.flyToBounds(L.latLngBounds(trip.route as L.LatLngExpression[]), {
+        padding: [50, 50],
+        maxZoom: 12,
+      });
+    }
   }, [fitTrip, fitRef, trips]);
 
   return (
     <div className="relative h-full w-full overflow-hidden">
-      {/* Google Maps Styled Floating Controls */}
-      <div className="absolute top-3 left-3 z-[1000] flex items-center gap-1.5 rounded-xl bg-white/95 p-1 shadow-lg backdrop-blur ring-1 ring-black/10">
+      {/* Google Maps & Dark Styled Floating Controls */}
+      <div className="absolute top-3 left-3 z-[1000] flex items-center gap-1.5 rounded-xl bg-slate-900/90 p-1 shadow-lg backdrop-blur ring-1 ring-white/10">
         <button
           type="button"
           onClick={() => changeMapType("roadmap")}
           className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
             mapType === "roadmap"
               ? "bg-blue-600 text-white shadow-sm"
-              : "text-slate-700 hover:bg-slate-100"
+              : "text-slate-300 hover:bg-slate-800"
           }`}
         >
-          Plan (Google)
+          Plan
         </button>
         <button
           type="button"
-          onClick={() => changeMapType("hybrid")}
+          onClick={() => changeMapType("satellite")}
           className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
-            mapType === "hybrid"
+            mapType === "satellite"
               ? "bg-blue-600 text-white shadow-sm"
-              : "text-slate-700 hover:bg-slate-100"
+              : "text-slate-300 hover:bg-slate-800"
           }`}
         >
           Satellite
@@ -285,10 +295,21 @@ export default function MapCore({
           className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
             mapType === "terrain"
               ? "bg-blue-600 text-white shadow-sm"
-              : "text-slate-700 hover:bg-slate-100"
+              : "text-slate-300 hover:bg-slate-800"
           }`}
         >
           Relief
+        </button>
+        <button
+          type="button"
+          onClick={() => changeMapType("dark")}
+          className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
+            mapType === "dark"
+              ? "bg-blue-600 text-white shadow-sm"
+              : "text-slate-300 hover:bg-slate-800"
+          }`}
+        >
+          Sombre
         </button>
       </div>
 

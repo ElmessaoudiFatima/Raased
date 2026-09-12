@@ -20,4 +20,4 @@ class CargoTracker(Base):
     unassigned_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     cargo: Mapped["Cargo"] = relationship(back_populates="cargo_trackers")
-    tracker: Mapped["Tracker"] = relationship(back_populates="cargo_trackers")
+    tracker: Mapped["Tracker"] = relationship(back_populates="cargo_trackers", lazy="selectin")

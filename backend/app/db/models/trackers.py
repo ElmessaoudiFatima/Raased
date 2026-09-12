@@ -15,9 +15,15 @@ class Tracker(Base):
 
     id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
     organization_id: Mapped[UUID] = mapped_column(ForeignKey("organizations.id"), nullable=False)
-    device_id: Mapped[str | None] = mapped_column(String(100), unique=True)
-    msisdn: Mapped[str | None] = mapped_column(String(30), nullable=True)
-    status: Mapped[str] = mapped_column(String(30), nullable=False)
+    device_id: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+
+    # obligatoire désormais — indispensable pour les appels CAMARA
+    msisdn: Mapped[str] = mapped_column(String(30), nullable=False)
+
+    # nom convivial affiché dans l'UI, ex: "Camion Renault 1"
+    label: Mapped[str | None] = mapped_column(String(100), nullable=True)
+
+    status: Mapped[str] = mapped_column(String(30), nullable=False, default="ACTIVE")
     last_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(
@@ -38,3 +44,8 @@ class Tracker(Base):
     alerts: Mapped[list["Alert"]] = relationship(back_populates="tracker")
     security_alerts: Mapped[list["SecurityAlert"]] = relationship(back_populates="tracker")
     network_actions: Mapped[list["NetworkAction"]] = relationship(back_populates="tracker")
+
+    @property
+    def vehicle_registration(self) -> str | None:
+        """Alias convivial pour l'immatriculation / véhicule associé au tracker."""
+        return self.label

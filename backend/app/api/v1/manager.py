@@ -1199,6 +1199,40 @@ async def _get_corridor_for_manager(
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Corridor weather (read-only wrapper)
+# ─────────────────────────────────────────────────────────────────────────────
+
+from app.weather.weather import get_corridor_weather, WeatherAPIError
+
+
+@router.get(
+    "/corridors/{corridor_id}/weather",
+    summary="Météo actuelle du corridor",
+)
+async def get_corridor_weather_route(
+    corridor_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role("MANAGER")),
+):
+    """
+    Retourne les conditions météo actuelles pour un corridor (cache ou Open-Meteo).
+    Accessible pour les corridors de l'organisation et les corridors globaux.
+    """
+    org_id = _require_org(current_user)
+    corridor = await corridor_service.get_corridor(db, corridor_id, org_id)
+    if not corridor:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Corridor introuvable.")
+    try:
+        return await get_corridor_weather(db, corridor_id)
+    except WeatherAPIError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Service météo indisponible : {exc}",
+        )
+
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Risk Zones
 # ─────────────────────────────────────────────────────────────────────────────
 

@@ -71,6 +71,21 @@ async def _recently_evaluated(tracker_id: str, cooldown_seconds: int) -> bool:
     return (datetime.now(timezone.utc) - last) < timedelta(seconds=cooldown_seconds)
 
 
+async def _has_pending_decision(tracker_id: str) -> bool:
+    """Bloque un nouveau cycle si une décision non résolue existe déjà pour ce tracker."""
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(
+            select(AgentDecision.id)
+            .where(
+                AgentDecision.tracker_id == tracker_id,
+                AgentDecision.requires_human_approval.is_(True),
+                AgentDecision.approved_by.is_(None),
+            )
+            .limit(1)
+        )
+        return result.scalar_one_or_none() is not None
+
+
 def _default_qod_parameters() -> dict:
     """
     Paramètres QoD de démonstration : ces IP techniques ne peuvent pas être
@@ -119,6 +134,9 @@ async def agent_loop() -> None:
             trackers = await _get_active_trackers()
             for tracker in trackers:
                 if await _recently_evaluated(str(tracker.id), settings.AGENT_LOOP_COOLDOWN_SECONDS):
+                    continue
+                if await _has_pending_decision(str(tracker.id)):
+                    logger.info("⏸️  Tracker %s ignoré : décision déjà en attente d'approbation", tracker.id)
                     continue
                 await _run_cycle_for_tracker(tracker)
         except asyncio.CancelledError:

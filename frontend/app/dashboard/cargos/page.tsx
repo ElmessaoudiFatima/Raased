@@ -136,7 +136,7 @@ export default function CargosPage() {
     setActionId(id);
     try {
       await patch(`/managers/cargos/${id}/status`, { status });
-      notify(status === "DEPART" ? "Convoi lancé." : "Statut mis à jour.");
+      notify(status === "IN_TRANSIT" ? "Convoi lancé." : "Statut mis à jour.");
       load();
     } catch (err) {
       notify(
@@ -230,7 +230,7 @@ export default function CargosPage() {
                         <div className="flex justify-end">
                           {c.status === "PENDING" && (
                             <button
-                              onClick={() => changeStatus(c.id, "DEPART")}
+                              onClick={() => changeStatus(c.id, "IN_TRANSIT")}
                               disabled={actionId === c.id}
                               className="inline-flex items-center gap-1 rounded-lg bg-raased-teal px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-raased-navy disabled:opacity-50"
                             >

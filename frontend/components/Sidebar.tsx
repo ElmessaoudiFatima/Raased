@@ -12,6 +12,7 @@ import {
   LogOut,
   Map,
   Radio,
+  Route,
   ShieldCheck,
   Sparkles,
   Truck,
@@ -73,6 +74,12 @@ const NAV: NavItem[] = [
     href: "/dashboard/map",
     label: "Carte temps réel",
     icon: <Map className="h-5 w-5" />,
+    roles: ["MANAGER"],
+  },
+  {
+    href: "/dashboard/corridors",
+    label: "Corridors & Zones",
+    icon: <Route className="h-5 w-5" />,
     roles: ["MANAGER"],
   },
   {
@@ -160,12 +167,15 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
           {user?.role === "MANAGER"
             ? "Pilotage Flotte"
             : user?.role === "DRIVER"
-            ? "Espace Chauffeur"
-            : "Super Administration"}
+              ? "Espace Chauffeur"
+              : "Super Administration"}
         </p>
         <nav className="space-y-1">
           {NAV.filter((n) => n.roles.includes(user?.role || "")).map((item) => {
-            const active = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href + "/"));
+            const active =
+              pathname === item.href ||
+              (item.href !== "/dashboard" &&
+                pathname.startsWith(item.href + "/"));
             const isObservatory = item.href === "/dashboard/observatory";
             return (
               <Link
@@ -222,10 +232,12 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
               {user?.role === "ADMIN"
                 ? "Administrateur"
                 : user?.role === "MANAGER"
-                ? "Manager"
-                : "Chauffeur"}
+                  ? "Manager"
+                  : "Chauffeur"}
               {" • "}
-              <span className="text-blue-400 group-hover:underline">Profil</span>
+              <span className="text-blue-400 group-hover:underline">
+                Profil
+              </span>
             </p>
           </div>
         </Link>

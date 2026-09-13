@@ -574,7 +574,7 @@ async def memory_node(state: AgentState) -> dict[str, Any]:
     """Mémorise seulement une décision déjà persistée, sans recopier PostgreSQL."""
     decision_id = state.get("agent_decision_id")
     if not decision_id:
-        return {}
+        return {"missing_information": ["Mémoire non enregistrée : aucune décision persistée"]}
     try:
         weather = state.get("weather") or {}
         get_agent_memory().store_memory(str(decision_id), build_situation_text(state), {
@@ -588,7 +588,7 @@ async def memory_node(state: AgentState) -> dict[str, Any]:
         })
     except Exception as exc:
         return {"errors": [f"Mémoire ChromaDB indisponible: {exc}"]}
-    return {}
+    return {"missing_information": []}
 
 
 __all__ = ["camara_perception_node", "load_context_node", "memory_node", "network_action_node",

@@ -1,5 +1,8 @@
 """
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> origin/main
 Intégration météo pour les corridors surveillés (Open-Meteo).
 
 get_corridor_weather() récupère les conditions au centroïde du corridor,
@@ -99,9 +102,9 @@ async def get_corridor_weather(db: AsyncSession, corridor_id: UUID) -> dict:
     await db.refresh(snapshot)
 
     return _snapshot_to_dict(snapshot, from_cache=False)
-=======
-Weather service integration using Open-Meteo for corridor tracking.
-"""
+
+#Weather service integration using Open-Meteo for corridor tracking.
+
 from __future__ import annotations
 
 import time
@@ -246,4 +249,4 @@ async def get_corridor_weather(db: AsyncSession, corridor_id: uuid.UUID) -> Dict
 
     _WEATHER_CACHE[cache_key] = (now, result)
     return result
->>>>>>> origin/manager-space
+

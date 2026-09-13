@@ -1,6 +1,6 @@
 fastapi==0.115.0
 uvicorn[standard]==0.30.6
-pydantic==2.12.0
+pydantic==2.9.2
 email-validator==2.3.0
 pydantic-settings==2.6.0
 sqlalchemy>=2.0.36,<2.1.0
@@ -18,7 +18,9 @@ groq==0.11.0
 google-generativeai==0.8.2
 python-jose[cryptography]==3.3.0
 bcrypt==4.2.0
+shapely==2.0.7
 pytest==8.3.3
 pytest-asyncio==0.24.0
 slowapi==0.1.9
+grpcio>=1.58.0
 chromadb==0.5.23

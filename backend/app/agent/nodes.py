@@ -82,6 +82,10 @@ def _evaluation_from_state(state: AgentState) -> RuleEvaluation:
         confidence=state.get("confidence"),
         missing_information=list(state.get("missing_information") or []),
         rule_trace=list(state.get("rule_trace") or []),
+        notification_required=bool(state.get("notification_required")),
+        alert_required=bool(state.get("alert_required")),
+        alert_category=state.get("alert_category"),
+        recipients=list(state.get("recipients") or []),
     )
 
 
@@ -343,6 +347,96 @@ async def trust_checks_node(state: AgentState) -> dict[str, Any]:
     return {"security_checks": merged, "security_check_status": rules.aggregate_security_status(merged)}
 
 
+async def weather_node(state: AgentState) -> dict[str, Any]:
+    """CHECK_WEATHER conditionnel : nouvelle zone, intervalle dépassé ou risque déjà détecté.
+
+    Réutilise `app/weather/weather.py` (cache WEATHER_CACHE_MINUTES).
+    Fallback propre : WeatherAPIError -> `weather.fetch_error`, jamais de crash.
+    """
+    corridor = state.get("corridor") or {}
+    corridor_id = _uuid(corridor.get("id"))
+    if corridor_id is None:
+        return {}
+    # Déjà une météo fraîche dans l'état ? Inutile de rappeler l'API.
+    existing = state.get("weather") or {}
+    if existing and not existing.get("fetch_error") and existing.get("recorded_at"):
+        try:
+            recorded = datetime.fromisoformat(str(existing["recorded_at"]).replace("Z", "+00:00"))
+            age_min = (datetime.now(timezone.utc) - recorded).total_seconds() / 60.0
+            if age_min < get_settings().WEATHER_CACHE_MINUTES and not state.get("incident_detected"):
+                return {}
+        except (TypeError, ValueError):
+            pass
+    try:
+        from app.weather.weather import get_corridor_weather
+        async with AsyncSessionLocal() as db:
+            result = await get_corridor_weather(db, corridor_id)
+        return {"weather": {
+            "temperature_c": result.get("temperature_c"),
+            "wind_speed_kmh": result.get("wind_speed_kmh"),
+            "visibility_m": result.get("visibility_m"),
+            "weather_code": result.get("weather_code"),
+            "degraded_conditions": result.get("degraded_conditions"),
+            "recorded_at": result.get("recorded_at"),
+            "from_cache": result.get("from_cache"),
+        }}
+    except Exception as exc:  # WeatherAPIError, DB, centroid : fallback sans planter
+        return {"weather": {"fetch_error": str(exc)[:300]},
+                "errors": [f"Weather API indisponible: {exc}"]}
+
+
+async def fuse_context_node(state: AgentState) -> dict[str, Any]:
+    """FUSE_CONTEXT : croise cargo+route+location+weather+network sans inventer.
+
+    Construit `route_progress` (dérivé) et `fused_context` (texte factuel pour
+    le LLM et l'audit). Ne décide pas : prépare `rules_node`.
+    """
+    corridor = state.get("corridor") or {}
+    remaining = state.get("remaining_time_hours")
+    location = state.get("current_location") or {}
+    weather = state.get("weather") or {}
+    route: dict[str, Any] = {
+        "origin": state.get("origin"),
+        "destination": state.get("destination"),
+        "progress_pct": None,
+        "deviation_suspected": None,
+        "delay_risk": (remaining is not None and remaining <= rules.DEADLINE_WARNING_HOURS
+                       and state.get("incident_detected") is True),
+        "corridor_closed": (corridor.get("is_active") is False
+                            if corridor else None),
+        "road_closed": None,
+    }
+    parts: list[str] = []
+    if state.get("cargo_reference"):
+        parts.append(f"cargo {state.get('cargo_reference')} ({state.get('criticality')})")
+    if corridor.get("name"):
+        parts.append(f"corridor {corridor.get('name')}")
+    if location.get("latitude") is not None:
+        parts.append(f"position {location.get('latitude')},{location.get('longitude')}")
+    zone = state.get("risk_zone") or {}
+    if zone.get("name"):
+        parts.append(f"zone {zone.get('name')}")
+    if weather.get("degraded_conditions") is True:
+        parts.append(f"météo dégradée code {weather.get('weather_code')}")
+    network = state.get("network_condition") or {}
+    if network.get("congestion_level"):
+        parts.append(f"congestion {network.get('congestion_level')}")
+    if remaining is not None:
+        parts.append(f"reste {remaining:.1f}h")
+    fused = " | ".join(parts) if parts else "Contexte partiel : informations indisponibles."
+    return {"route_progress": route, "fused_context": fused}
+
+
+async def similar_cases_node(state: AgentState) -> dict[str, Any]:
+    """SEARCH_SIMILAR_CASES : réutilise `memory.py`, jamais de 2e mémoire."""
+    try:
+        query = build_situation_text(state)
+        results = get_agent_memory().search_similar(query, n_results=3)
+        return {"historical_cases": results}
+    except Exception as exc:
+        return {"errors": [f"Mémoire indisponible pour la recherche: {exc}"]}
+
+
 async def rules_node(state: AgentState) -> dict[str, Any]:
     return rules.evaluate(state).as_state_update()
 
@@ -378,6 +472,9 @@ async def persist_assessment_node(state: AgentState) -> dict[str, Any]:
         db.add(decision)
         await db.flush()
         if state["decision"] != rules.Decision.MONITOR:
+            category = state.get("alert_category")
+            prefix = f"[{category}] " if category else ""
+            recipients = state.get("recipients") or []
             db.add(Alert(
                 organization_id=organization_id,
                 cargo_id=cargo_id,
@@ -385,12 +482,18 @@ async def persist_assessment_node(state: AgentState) -> dict[str, Any]:
                 risk_assessment_id=assessment.id,
                 severity=state.get("risk_level") or "UNKNOWN",
                 title=f"Décision SENTRY : {state['decision']}",
-                message=state.get("justification") or "Décision déterministe SENTRY enregistrée.",
+                message=prefix + (state.get("justification") or "Décision déterministe SENTRY enregistrée."),
                 status="OPEN",
             ))
+        else:
+            recipients = []
         await write_audit_log(db, organization_id=organization_id,
             action="agent_decision_created", entity_type="agent_decision", entity_id=decision.id,
-            result=state["decision"], payload={"risk_assessment_id": str(assessment.id)}, commit=False)
+            result=state["decision"], payload={"risk_assessment_id": str(assessment.id),
+                "recipients": state.get("recipients") or recipients,
+                "notification_required": state.get("notification_required"),
+                "alert_required": state.get("alert_required"),
+                "alert_category": state.get("alert_category")}, commit=False)
         await db.commit()
     return {"risk_assessment_id": str(assessment.id), "agent_decision_id": str(decision.id)}
 
@@ -421,7 +524,7 @@ async def network_action_node(state: AgentState) -> dict[str, Any]:
             ))
             await db.commit()
 
-    if state.get("decision") == rules.Decision.REQUEST_QOD and state.get("qod_required"):
+    if state.get("decision") in (rules.Decision.REQUEST_QOD, rules.Decision.IMPROVE_CONNECTIVITY) and state.get("qod_required"):
         if (state.get("network_condition") or {}).get("active_qod_status"):
             return {"missing_information": ["action QoD équivalente déjà active"]}
         params = state.get("qod_parameters") or {}
@@ -477,10 +580,14 @@ async def memory_node(state: AgentState) -> dict[str, Any]:
     if not decision_id:
         return {}
     try:
+        weather = state.get("weather") or {}
         get_agent_memory().store_memory(str(decision_id), build_situation_text(state), {
             "cargo_id": state.get("cargo_id"), "trip_id": state.get("trip_id"),
             "criticality": state.get("criticality"), "incident_type": state.get("incident_type"),
             "risk_level": state.get("risk_level"), "decision": state.get("decision"),
+            "human_approval": state.get("requires_human_approval"),
+            "alert_category": state.get("alert_category"),
+            "weather_code": weather.get("weather_code"),
             "timestamp": state.get("evaluated_at"),
         })
     except Exception as exc:
@@ -489,4 +596,5 @@ async def memory_node(state: AgentState) -> dict[str, Any]:
 
 
 __all__ = ["camara_perception_node", "load_context_node", "memory_node", "network_action_node",
-           "persist_assessment_node", "reasoning_node", "rules_node", "trust_checks_node"]
+           "persist_assessment_node", "reasoning_node", "rules_node", "trust_checks_node",
+           "weather_node", "fuse_context_node", "similar_cases_node"]

@@ -242,6 +242,44 @@ class KnownContextSnapshot(TypedDict, total=False):
     is_active_now: Optional[bool]  # True si l'instant courant est dans la fenêtre
 
 
+class WeatherSnapshot(TypedDict, total=False):
+    """
+    Conditions météo liées au corridor / à la position du cargo.
+
+    Source : `weather_snapshots` (cache Open-Meteo, voir `app/weather/weather.py`).
+    Contexte uniquement : n'est jamais un moteur de décision autonome.
+    `from_cache=True` signifie un relevé récent réutilisé (< WEATHER_CACHE_MINUTES).
+    `fetch_error` porte le message d'indisponibilité sans faire planter le cycle.
+    """
+
+    temperature_c: Optional[float]
+    wind_speed_kmh: Optional[float]
+    visibility_m: Optional[float]
+    weather_code: Optional[int]
+    degraded_conditions: Optional[bool]
+    recorded_at: Optional[str]
+    from_cache: Optional[bool]
+    fetch_error: Optional[str]
+
+
+class RouteProgressSnapshot(TypedDict, total=False):
+    """
+    Progression du cargo du départ vers la destination.
+
+    Dérivé des données réelles (`current_location`, `origin/destination`,
+    `remaining_time_hours`) : aucune table `routes/trips` n'est créée.
+    `deviation_suspected` reste None si la comparaison est impossible.
+    """
+
+    origin: Optional[str]
+    destination: Optional[str]
+    progress_pct: Optional[float]
+    deviation_suspected: Optional[bool]
+    delay_risk: Optional[bool]
+    corridor_closed: Optional[bool]
+    road_closed: Optional[bool]
+
+
 # ---------------------------------------------------------------------------
 # État principal du graphe
 # ---------------------------------------------------------------------------
@@ -458,6 +496,34 @@ class AgentState(TypedDict, total=False):
     agent_decision_id: Optional[str]
     """Identifiant de `agent_decisions` créé pendant ce cycle."""
 
+    # === CONTEXTE FUSIONNÉ / MÉTÉO / ROUTE ==================================
+
+    weather: Optional[WeatherSnapshot]
+    """Météo du corridor (contexte Open-Meteo). None = non consultée/indisponible."""
+
+    route_progress: Optional[RouteProgressSnapshot]
+    """Progression départ -> destination, dérivée sans table supplémentaire."""
+
+    fused_context: Optional[str]
+    """Résumé factuel multi-sources (cargo+route+location+weather+network)."""
+
+    historical_cases: Optional[list[dict[str, Any]]]
+    """Cas similaires retrouvés via `memory.py` (réutilisation, pas de 2e mémoire)."""
+
+    # === NOTIFICATION / ALERTE / DESTINATAIRES ===============================
+
+    notification_required: Optional[bool]
+    """True = information à pousser (ex. changement météo sans danger immédiat)."""
+
+    alert_required: Optional[bool]
+    """True = attention particulière requise (risque avéré)."""
+
+    alert_category: Optional[str]
+    """Catégorie typée sans colonne DB : ROAD_CLOSED, DANGEROUS_WEATHER, etc."""
+
+    recipients: Optional[list[str]]
+    """Sous-ensemble de ["MANAGER", "DRIVER", "TRACKER"]. CANCEL -> ["MANAGER"]."""
+
     # === TRAÇABILITÉ / LACUNES ==============================================
 
     missing_information: Annotated[list[str], merge_missing]
@@ -603,6 +669,10 @@ def state_summary(state: AgentState) -> dict[str, Any]:
         "incident_type",
         "incident_severity",
         "unresolved_security_alerts",
+        "weather",
+        "route_progress",
+        "fused_context",
+        "historical_cases",
         "risk_score",
         "risk_level",
         "risk_data_coverage",
@@ -611,6 +681,10 @@ def state_summary(state: AgentState) -> dict[str, Any]:
         "confidence",
         "requires_human_approval",
         "human_approved",
+        "notification_required",
+        "alert_required",
+        "alert_category",
+        "recipients",
         "qod_required",
         "network_slice_required",
         "risk_assessment_id",

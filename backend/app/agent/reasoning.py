@@ -335,10 +335,12 @@ retirer une validation humaine exigée par les règles.
 ## DÉCISIONS POSSIBLES (vocabulaire fermé)
 - MONITOR : surveillance passive, aucune action.
 - NOTIFY_MANAGER : informer le responsable, sans agir sur le terrain.
-- RECOMMEND_ALTERNATIVE_ROUTE : proposer un itinéraire de contournement.
-- REQUEST_QOD : sécuriser temporairement la qualité du lien réseau d'un tracker.
+- ALERT : alerte à attention particulière (risque avéré).
+- RECOMMEND_ALTERNATIVE_ROUTE (legacy) / PROPOSE_ROUTE_CHANGE : proposer un itinéraire.
+- REQUEST_QOD / IMPROVE_CONNECTIVITY : sécuriser le lien réseau d'un tracker.
 - REQUEST_NETWORK_SLICE : réserver une tranche réseau dédiée (opération critique).
-- HUMAN_APPROVAL : ne pas trancher et remonter le cas au manager.
+- HUMAN_APPROVAL / ESCALATE / REQUEST_HUMAN_APPROVAL : remonter au manager.
+- CANCEL_DELIVERY : proposer l'annulation (jamais auto-exécutée, manager décide).
 - REQUEST_MORE_INFORMATION : données insuffisantes pour conclure.
 
 ## NIVEAUX DE RISQUE (vocabulaire fermé)
@@ -419,6 +421,9 @@ def build_user_prompt(state: AgentState, evaluation: RuleEvaluation) -> str:
     network = state.get("network_condition") or {}
     known = state.get("known_context") or {}
     incident = state.get("incident") or {}
+    weather = state.get("weather") or {}
+    route = state.get("route_progress") or {}
+    historical = state.get("historical_cases")
     security_alerts = state.get("unresolved_security_alerts")
 
     if security_alerts is None or not isinstance(security_alerts, list):
@@ -495,6 +500,31 @@ def build_user_prompt(state: AgentState, evaluation: RuleEvaluation) -> str:
         f"Statut agrégé : {_fmt(state.get('security_check_status'))}",
         f"Détail des contrôles : {_fmt(state.get('security_checks'))}",
         f"Alertes de sécurité non résolues : {security_alerts_text}",
+        "",
+        "# MÉTÉO (contexte Open-Meteo, jamais autonome)",
+        f"Température : {_fmt(weather.get('temperature_c'))}",
+        f"Vent : {_fmt(weather.get('wind_speed_kmh'))}",
+        f"Visibilité : {_fmt(weather.get('visibility_m'))}",
+        f"Code : {_fmt(weather.get('weather_code'))}, dégradé : {_fmt(weather.get('degraded_conditions'))}",
+        f"Erreur de récupération : {_fmt(weather.get('fetch_error'))}",
+        "",
+        "# TRAJET (dérivé départ -> destination)",
+        f"Origine : {_fmt(route.get('origin') or state.get('origin'))}",
+        f"Destination : {_fmt(route.get('destination') or state.get('destination'))}",
+        f"Retard estimé : {_fmt(route.get('delay_risk'))}",
+        f"Déviation suspectée : {_fmt(route.get('deviation_suspected'))}",
+        f"Corridor fermé : {_fmt(route.get('corridor_closed'))}",
+        f"Contexte fusionné : {_fmt(state.get('fused_context'))}",
+        "",
+        "# CAS SIMILAIRES (mémoire réutilisée)",
+        f"{len(historical) if isinstance(historical, list) else UNAVAILABLE} cas : {_fmt(historical[:2] if isinstance(historical, list) else None)}",
+        f"Notification requise : {_fmt(state.get('notification_required'))}, "
+        f"alerte requise : {_fmt(state.get('alert_required'))}, "
+        f"catégorie : {_fmt(state.get('alert_category'))}, "
+        f"destinataires : {_fmt(state.get('recipients'))}",
+        f"Actions disponibles : MONITOR, NOTIFY_MANAGER, ALERT, PROPOSE_ROUTE_CHANGE, "
+        f"IMPROVE_CONNECTIVITY, REQUEST_QOD, REQUEST_NETWORK_SLICE, ESCALATE, "
+        f"REQUEST_HUMAN_APPROVAL, CANCEL_DELIVERY (manager seul décide)",
         "",
         "# ÉVALUATION DÉTERMINISTE (FAITS À EXPLIQUER, NON NÉGOCIABLES)",
         f"Décision retenue : {evaluation.decision}",
@@ -661,10 +691,16 @@ def _enforce_rule_authority(
 _DEGRADED_TEMPLATES: dict[str, str] = {
     Decision.MONITOR: "Aucune action requise : les règles déterministes ne relèvent pas de situation nécessitant une intervention.",
     Decision.NOTIFY_MANAGER: "Le responsable logistique est notifié pour information ; aucune action n'est engagée sur le terrain.",
+    Decision.ALERT: "ALERTE : situation à attention particulière, manager et driver notifiés.",
     Decision.RECOMMEND_ALTERNATIVE_ROUTE: "Un itinéraire alternatif est recommandé afin de contourner un incident localisé sur le corridor.",
+    Decision.PROPOSE_ROUTE_CHANGE: "Un changement d'itinéraire est proposé avec comparatif route actuelle vs alternative.",
     Decision.REQUEST_QOD: "Une session Quality on Demand est demandée pour sécuriser temporairement le lien de suivi du tracker.",
+    Decision.IMPROVE_CONNECTIVITY: "Une amélioration de la connectivité (QoD) est proposée pour sécuriser le suivi.",
     Decision.REQUEST_NETWORK_SLICE: "Une tranche réseau dédiée est demandée pour garantir la connectivité de cette opération critique.",
     Decision.HUMAN_APPROVAL: "Le cas est remonté au responsable logistique : l'agent ne dispose pas des éléments pour trancher seul.",
+    Decision.ESCALATE: "Escalade au manager : risque critique nécessitant arbitrage humain.",
+    Decision.REQUEST_HUMAN_APPROVAL: "Validation humaine demandée avant toute action à impact.",
+    Decision.CANCEL_DELIVERY: "Annulation proposée : seul le manager peut valider, jamais d'exécution automatique.",
     Decision.REQUEST_MORE_INFORMATION: "Les informations nécessaires ne sont pas disponibles dans la base : aucune conclusion ne peut être formulée.",
 }
 

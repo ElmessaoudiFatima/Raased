@@ -101,18 +101,14 @@ class CongestionLevel:
 
 class Decision:
     """
-    Les 7 décisions possibles de l'agent. Alimente `agent_decisions.decision`.
+    Décisions possibles de l'agent. Alimente `agent_decisions.decision`
+    (String(40) — toutes les valeurs <= 27 caractères).
 
-    Distinction importante avec le drapeau `requires_human_approval` :
-
-      * `HUMAN_APPROVAL` comme DÉCISION signifie « l'agent ne tranche pas et
-        remonte le cas au manager » (situation ambiguë, soupçon de fraude).
-      * une décision précise (ex. `REQUEST_NETWORK_SLICE`) accompagnée de
-        `requires_human_approval=True` signifie « l'agent sait quoi faire, mais
-        l'action est coûteuse et attend le feu vert du manager ».
-
-    Ces deux cas correspondent exactement aux deux colonnes distinctes
-    `agent_decisions.decision` et `agent_decisions.requires_human_approval`.
+    Historique : 7 décisions d'origine conservées pour compatibilité
+    (dont RECOMMEND_ALTERNATIVE_ROUTE, alias legacy de PROPOSE_ROUTE_CHANGE).
+    Extensions : ALERT, PROPOSE_ROUTE_CHANGE, IMPROVE_CONNECTIVITY, ESCALATE,
+    REQUEST_HUMAN_APPROVAL, CANCEL_DELIVERY — mappées sur les mêmes mécanismes
+    d'exécution (Alert / NetworkAction / HITL) sans nouvelle table.
     """
 
     MONITOR = "MONITOR"
@@ -122,6 +118,13 @@ class Decision:
     REQUEST_NETWORK_SLICE = "REQUEST_NETWORK_SLICE"
     HUMAN_APPROVAL = "HUMAN_APPROVAL"
     REQUEST_MORE_INFORMATION = "REQUEST_MORE_INFORMATION"
+    # --- Extensions résilience (compatibles String(40)) ---
+    ALERT = "ALERT"
+    PROPOSE_ROUTE_CHANGE = "PROPOSE_ROUTE_CHANGE"
+    IMPROVE_CONNECTIVITY = "IMPROVE_CONNECTIVITY"
+    ESCALATE = "ESCALATE"
+    REQUEST_HUMAN_APPROVAL = "REQUEST_HUMAN_APPROVAL"
+    CANCEL_DELIVERY = "CANCEL_DELIVERY"
 
     ALL = (
         MONITOR,
@@ -131,12 +134,79 @@ class Decision:
         REQUEST_NETWORK_SLICE,
         HUMAN_APPROVAL,
         REQUEST_MORE_INFORMATION,
+        ALERT,
+        PROPOSE_ROUTE_CHANGE,
+        IMPROVE_CONNECTIVITY,
+        ESCALATE,
+        REQUEST_HUMAN_APPROVAL,
+        CANCEL_DELIVERY,
     )
 
     #: Actions qui consomment une ressource réseau facturée ou qui modifient
     #: l'itinéraire physique : elles ne partent jamais sans supervision humaine
     #: au-delà d'un certain niveau de criticité.
-    COSTLY = (RECOMMEND_ALTERNATIVE_ROUTE, REQUEST_QOD, REQUEST_NETWORK_SLICE)
+    COSTLY = (
+        RECOMMEND_ALTERNATIVE_ROUTE,
+        PROPOSE_ROUTE_CHANGE,
+        REQUEST_QOD,
+        REQUEST_NETWORK_SLICE,
+        IMPROVE_CONNECTIVITY,
+        CANCEL_DELIVERY,
+    )
+
+    #: Alias d'exécution : la nouvelle nomenclature se replie sur les
+    #: mécanismes existants (pas de 2e système d'action).
+    EXECUTION_ALIAS = {
+        PROPOSE_ROUTE_CHANGE: RECOMMEND_ALTERNATIVE_ROUTE,
+        IMPROVE_CONNECTIVITY: REQUEST_QOD,
+        ALERT: NOTIFY_MANAGER,
+        ESCALATE: HUMAN_APPROVAL,
+        REQUEST_HUMAN_APPROVAL: HUMAN_APPROVAL,
+    }
+
+
+class AlertCategory:
+    """Catégories typées stockées dans `Alert.message` via préfixe `[CAT]`
+    (aucune colonne DB ajoutée, contrainte respectée)."""
+
+    ROAD_CLOSED = "ROAD_CLOSED"
+    CORRIDOR_CLOSED = "CORRIDOR_CLOSED"
+    DANGEROUS_WEATHER = "DANGEROUS_WEATHER"
+    STORM = "STORM"
+    HEAVY_RAIN = "HEAVY_RAIN"
+    STRONG_WIND = "STRONG_WIND"
+    LOW_VISIBILITY = "LOW_VISIBILITY"
+    EXTREME_TEMPERATURE = "EXTREME_TEMPERATURE"
+    HIGH_CONGESTION = "HIGH_CONGESTION"
+    CRITICAL_DELAY = "CRITICAL_DELAY"
+    DEADLINE_AT_RISK = "DEADLINE_AT_RISK"
+    DELIVERY_DEADLINE_EXCEEDED = "DELIVERY_DEADLINE_EXCEEDED"
+    LOW_NETWORK_QUALITY = "LOW_NETWORK_QUALITY"
+    VEHICLE_CONNECTIVITY_LOST = "VEHICLE_CONNECTIVITY_LOST"
+    NETWORK_DEGRADATION = "NETWORK_DEGRADATION"
+    CRITICAL_CONNECTIVITY_RISK = "CRITICAL_CONNECTIVITY_RISK"
+    ROUTE_CHANGE_RECOMMENDED = "ROUTE_CHANGE_RECOMMENDED"
+    ROUTE_CHANGE_REQUIRED = "ROUTE_CHANGE_REQUIRED"
+    ROUTE_CHANGE_APPROVAL_REQUIRED = "ROUTE_CHANGE_APPROVAL_REQUIRED"
+
+    ALL = (
+        ROAD_CLOSED, CORRIDOR_CLOSED, DANGEROUS_WEATHER, STORM, HEAVY_RAIN,
+        STRONG_WIND, LOW_VISIBILITY, EXTREME_TEMPERATURE, HIGH_CONGESTION,
+        CRITICAL_DELAY, DEADLINE_AT_RISK, DELIVERY_DEADLINE_EXCEEDED,
+        LOW_NETWORK_QUALITY, VEHICLE_CONNECTIVITY_LOST, NETWORK_DEGRADATION,
+        CRITICAL_CONNECTIVITY_RISK, ROUTE_CHANGE_RECOMMENDED,
+        ROUTE_CHANGE_REQUIRED, ROUTE_CHANGE_APPROVAL_REQUIRED,
+    )
+
+
+class Recipient:
+    """Destinataires sans table dédiée (résolus via organization/users/tracker)."""
+
+    MANAGER = "MANAGER"
+    DRIVER = "DRIVER"
+    TRACKER = "TRACKER"
+
+    ALL = (MANAGER, DRIVER, TRACKER)
 
 
 class SecurityStatus:
@@ -229,13 +299,17 @@ CONGESTION_SCALE: dict[str, float] = {
 
 #: Poids des facteurs de risque. La somme vaut 1.0 lorsque TOUS les facteurs
 #: sont disponibles ; sinon le score est renormalisé sur les poids présents.
+#: Extension sans 2e Risk Engine : weather + route_status ajoutés par
+#: rééquilibrage (total toujours 1.0, couverture comparable à l'existant).
 RISK_FACTOR_WEIGHTS: dict[str, float] = {
-    "congestion": 0.25,        # sévérité réseau/trafic observée
-    "cargo_criticality": 0.25, # enjeu métier de la cargaison
-    "deadline_pressure": 0.20, # marge temporelle restante
-    "zone_risk": 0.15,         # dangerosité de la zone traversée
-    "security": 0.10,          # intégrité SIM/appareil/numéro
+    "congestion": 0.20,        # sévérité réseau/trafic observée
+    "cargo_criticality": 0.20, # enjeu métier de la cargaison
+    "deadline_pressure": 0.18, # marge temporelle restante / urgence
+    "zone_risk": 0.12,         # dangerosité de la zone traversée
+    "security": 0.08,          # intégrité SIM/appareil/numéro
     "corridor_risk": 0.05,     # risque structurel du corridor
+    "weather": 0.10,           # météo dégradée au corridor (contexte Open-Meteo)
+    "route_status": 0.07,      # déviation / fermeture / retard estimé
 }
 
 #: Couverture minimale des facteurs de risque pour qu'un score soit publiable.
@@ -542,6 +616,56 @@ def security_factor(state: AgentState) -> tuple[Optional[float], dict[str, Any]]
     }
 
 
+def weather_factor(state: AgentState) -> tuple[Optional[float], dict[str, Any]]:
+    """
+    Facteur « météo » (poids 0.10) — contexte Open-Meteo, jamais autonome.
+
+    degraded_conditions=True -> 1.0, visibilité < 1000m -> >= 0.75,
+    vent > 70 km/h ou code orage -> >= 0.75. Absence de `weather` = indisponible.
+    `fetch_error` rend le facteur indisponible sans planter le cycle.
+    """
+    weather = state.get("weather") or {}
+    if weather.get("fetch_error"):
+        return None, {"available": False, "reason": "weather API indisponible"}
+    if not weather:
+        return None, {"available": False, "reason": "weather indisponible"}
+    degraded = weather.get("degraded_conditions")
+    if degraded is True:
+        return 1.0, {"available": True, "value": 1.0, "degraded": True,
+                     "weather_code": weather.get("weather_code")}
+    visibility = weather.get("visibility_m")
+    wind = weather.get("wind_speed_kmh")
+    value = 0.15
+    if visibility is not None and visibility < 1000:
+        value = max(value, 0.85)
+    if wind is not None and wind > 70:
+        value = max(value, 0.75)
+    temp = weather.get("temperature_c")
+    if temp is not None and (temp > 45 or temp < -10):
+        value = max(value, 0.85)
+    return value, {"available": True, "value": value,
+                   "weather_code": weather.get("weather_code")}
+
+
+def route_status_factor(state: AgentState) -> tuple[Optional[float], dict[str, Any]]:
+    """
+    Facteur « état de la route » (poids 0.07).
+
+    corridor_closed/road_closed -> 1.0, deviation_suspected -> 0.7,
+    delay_risk -> 0.6. Sans `route_progress`, indisponible.
+    """
+    route = state.get("route_progress") or {}
+    if not route:
+        return None, {"available": False, "reason": "route_progress indisponible"}
+    if route.get("corridor_closed") is True or route.get("road_closed") is True:
+        return 1.0, {"available": True, "value": 1.0, "closure": True}
+    if route.get("deviation_suspected") is True:
+        return 0.7, {"available": True, "value": 0.7, "deviation": True}
+    if route.get("delay_risk") is True:
+        return 0.6, {"available": True, "value": 0.6, "delay": True}
+    return 0.1, {"available": True, "value": 0.1, "nominal": True}
+
+
 #: Table de dispatch facteur -> fonction de calcul. Rend l'ajout d'un futur
 #: facteur trivial : une entrée dans RISK_FACTOR_WEIGHTS + une entrée ici.
 RISK_FACTOR_FUNCTIONS = {
@@ -551,6 +675,8 @@ RISK_FACTOR_FUNCTIONS = {
     "zone_risk": zone_risk_factor,
     "security": security_factor,
     "corridor_risk": corridor_risk_factor,
+    "weather": weather_factor,
+    "route_status": route_status_factor,
 }
 
 
@@ -855,9 +981,10 @@ def requires_human_approval(state: AgentState, decision: str, risk_level: Option
              sur un tracker potentiellement détourné ;
       * H5 — couverture de données insuffisante alors qu'une action coûteuse est
              envisagée : agir sur une image partielle exige un arbitrage humain.
+      * H6 — CANCEL_DELIVERY, ESCALATE, REQUEST_HUMAN_APPROVAL : toujours.
 
-    MONITOR, NOTIFY_MANAGER et REQUEST_MORE_INFORMATION ne requièrent jamais de
-    validation : ils n'ont aucun effet de bord sur le terrain.
+    MONITOR, NOTIFY_MANAGER, ALERT et REQUEST_MORE_INFORMATION ne requièrent
+    jamais de validation technique (ALERT notifie, n'exécute pas).
     """
     criticality = normalize_upper(state.get("criticality"), Criticality.ALL)
     security = normalize_upper(state.get("security_check_status"), SecurityStatus.ALL)
@@ -865,8 +992,15 @@ def requires_human_approval(state: AgentState, decision: str, risk_level: Option
 
     if has_unresolved_security_alert(state) or security == SecurityStatus.FAILED:
         return True  # H4
-    if decision == Decision.REQUEST_NETWORK_SLICE:
-        return True  # H2
+    if decision in (Decision.REQUEST_NETWORK_SLICE, Decision.CANCEL_DELIVERY,
+                    Decision.ESCALATE, Decision.REQUEST_HUMAN_APPROVAL):
+        return True  # H2 + H6
+    # Météo dangereuse sur cargo critique : arbitrage humain systématique.
+    weather = state.get("weather") or {}
+    if (weather.get("degraded_conditions") is True
+            and criticality in Criticality.REQUIRING_HUMAN_OVERSIGHT
+            and decision in Decision.COSTLY):
+        return True  # H6-weather
     if decision not in Decision.COSTLY:
         return False
 
@@ -877,6 +1011,88 @@ def requires_human_approval(state: AgentState, decision: str, risk_level: Option
     if coverage is not None and coverage < MIN_RISK_DATA_COVERAGE:
         return True  # H5
     return False
+
+
+def should_propose_cancel(state: AgentState, risk_level: Optional[str]) -> bool:
+    """R-CANCEL : proposer l'annulation (jamais exécutée sans manager).
+
+    Conditions cumulatives : cargo CRITICAL + risque CRITICAL + (météo
+    dégradée ou route fermée ou signal perdu) + échéance critique ou dépassée.
+    L'exécution reste bloquée par requires_human_approval=True.
+    """
+    if normalize_upper(state.get("criticality"), Criticality.ALL) != Criticality.CRITICAL:
+        return False
+    if risk_level != RiskLevel.CRITICAL:
+        return False
+    weather = state.get("weather") or {}
+    route = state.get("route_progress") or {}
+    location = state.get("current_location") or {}
+    bad_weather = weather.get("degraded_conditions") is True
+    closed = route.get("corridor_closed") is True or route.get("road_closed") is True
+    age = location.get("age_seconds")
+    lost = age is not None and age > STALE_LOCATION_SECONDS
+    if not (bad_weather or closed or lost):
+        return False
+    remaining = state.get("remaining_time_hours")
+    return remaining is not None and remaining <= DEADLINE_WARNING_HOURS
+
+
+def decide_recipients(decision: str, risk_level: Optional[str]) -> list[str]:
+    """Destinataires sans table dédiée. CANCEL -> MANAGER seul décideur."""
+    if decision == Decision.CANCEL_DELIVERY:
+        return [Recipient.MANAGER]
+    if decision in (Decision.HUMAN_APPROVAL, Decision.ESCALATE,
+                    Decision.REQUEST_HUMAN_APPROVAL):
+        return [Recipient.MANAGER, Recipient.DRIVER]
+    if risk_level == RiskLevel.CRITICAL or decision == Decision.ALERT:
+        return [Recipient.MANAGER, Recipient.DRIVER, Recipient.TRACKER]
+    if decision in (Decision.NOTIFY_MANAGER, Decision.PROPOSE_ROUTE_CHANGE,
+                    Decision.RECOMMEND_ALTERNATIVE_ROUTE):
+        return [Recipient.MANAGER, Recipient.DRIVER, Recipient.TRACKER]
+    return [Recipient.MANAGER]
+
+
+def decide_alert_category(state: AgentState, decision: str,
+                          risk_level: Optional[str]) -> Optional[str]:
+    """Catégorie typée encodée en préfixe [CAT] dans Alert.message (pas de colonne)."""
+    weather = state.get("weather") or {}
+    route = state.get("route_progress") or {}
+    network = state.get("network_condition") or {}
+    location = state.get("current_location") or {}
+    if route.get("corridor_closed") is True:
+        return AlertCategory.CORRIDOR_CLOSED
+    if route.get("road_closed") is True:
+        return AlertCategory.ROAD_CLOSED
+    if weather.get("degraded_conditions") is True:
+        code = weather.get("weather_code")
+        if code in (95, 96, 99):
+            return AlertCategory.STORM
+        vis = weather.get("visibility_m")
+        if vis is not None and vis < 1000:
+            return AlertCategory.LOW_VISIBILITY
+        wind = weather.get("wind_speed_kmh")
+        if wind is not None and wind > 70:
+            return AlertCategory.STRONG_WIND
+        temp = weather.get("temperature_c")
+        if temp is not None and (temp > 45 or temp < -10):
+            return AlertCategory.EXTREME_TEMPERATURE
+        return AlertCategory.DANGEROUS_WEATHER
+    if decision in (Decision.PROPOSE_ROUTE_CHANGE, Decision.RECOMMEND_ALTERNATIVE_ROUTE):
+        if requires_human_approval(state, decision, risk_level):
+            return AlertCategory.ROUTE_CHANGE_APPROVAL_REQUIRED
+        return AlertCategory.ROUTE_CHANGE_RECOMMENDED
+    level = (network.get("congestion_level") or "").lower()
+    if level == "high":
+        return AlertCategory.HIGH_CONGESTION
+    age = location.get("age_seconds")
+    if age is not None and age > STALE_LOCATION_SECONDS:
+        return AlertCategory.VEHICLE_CONNECTIVITY_LOST
+    remaining = state.get("remaining_time_hours")
+    if remaining is not None and remaining < 0:
+        return AlertCategory.DELIVERY_DEADLINE_EXCEEDED
+    if remaining is not None and remaining <= DEADLINE_WARNING_HOURS:
+        return AlertCategory.DEADLINE_AT_RISK
+    return None
 
 
 # ===========================================================================
@@ -906,6 +1122,10 @@ class RuleEvaluation:
     confidence: Optional[float]
     missing_information: list[str] = field(default_factory=list)
     rule_trace: list[str] = field(default_factory=list)
+    notification_required: bool = False
+    alert_required: bool = False
+    alert_category: Optional[str] = None
+    recipients: list[str] = field(default_factory=list)
 
     def as_state_update(self) -> dict[str, Any]:
         """
@@ -929,6 +1149,10 @@ class RuleEvaluation:
             "confidence": self.confidence,
             "missing_information": self.missing_information,
             "rule_trace": self.rule_trace,
+            "notification_required": self.notification_required,
+            "alert_required": self.alert_required,
+            "alert_category": self.alert_category,
+            "recipients": self.recipients,
         }
 
 
@@ -1004,6 +1228,22 @@ def evaluate(state: AgentState) -> RuleEvaluation:
 
     def build(decision: str) -> RuleEvaluation:
         """Assemble le résultat en appliquant la règle HITL à la décision retenue."""
+        approval = requires_human_approval(scored_state, decision, risk_level)
+        category = decide_alert_category(scored_state, decision, risk_level)
+        recipients = decide_recipients(decision, risk_level)
+        # Notification informative vs alerte : ne pas confondre.
+        notif = decision in (Decision.NOTIFY_MANAGER, Decision.ALERT,
+                             Decision.PROPOSE_ROUTE_CHANGE,
+                             Decision.RECOMMEND_ALTERNATIVE_ROUTE,
+                             Decision.IMPROVE_CONNECTIVITY)
+        alert = decision in (Decision.ALERT, Decision.PROPOSE_ROUTE_CHANGE,
+                             Decision.RECOMMEND_ALTERNATIVE_ROUTE,
+                             Decision.REQUEST_QOD, Decision.REQUEST_NETWORK_SLICE,
+                             Decision.IMPROVE_CONNECTIVITY, Decision.CANCEL_DELIVERY,
+                             Decision.ESCALATE, Decision.HUMAN_APPROVAL,
+                             Decision.REQUEST_HUMAN_APPROVAL) or (
+            risk_level == RiskLevel.CRITICAL and decision != Decision.MONITOR
+        )
         return RuleEvaluation(
             decision=decision,
             risk_score=risk_score,
@@ -1012,12 +1252,16 @@ def evaluate(state: AgentState) -> RuleEvaluation:
             risk_data_coverage=coverage,
             incident_type=incident_type,
             incident_severity=incident_severity,
-            requires_human_approval=requires_human_approval(scored_state, decision, risk_level),
+            requires_human_approval=approval,
             qod_required=qod,
             network_slice_required=slice_needed,
             confidence=confidence,
             missing_information=missing,
             rule_trace=trace,
+            notification_required=notif,
+            alert_required=alert,
+            alert_category=category,
+            recipients=recipients,
         )
 
     # --- R-00 : cargaison hors périmètre d'analyse.
@@ -1048,6 +1292,10 @@ def evaluate(state: AgentState) -> RuleEvaluation:
             confidence=confidence,
             missing_information=missing,
             rule_trace=trace,
+            notification_required=True,
+            alert_required=True,
+            alert_category=None,
+            recipients=[Recipient.MANAGER, Recipient.DRIVER],
         )
 
     if normalize_upper(state.get("security_check_status"), SecurityStatus.ALL) == SecurityStatus.FAILED:
@@ -1081,15 +1329,27 @@ def evaluate(state: AgentState) -> RuleEvaluation:
     # --- R-06 : réponse ponctuelle pour sécuriser le lien de suivi.
     if qod:
         trace.append("R-06:qod_justifie:lien_de_suivi_menace")
+        # IMPROVE_CONNECTIVITY = présentation générique de REQUEST_QOD.
+        if (state.get("weather") or {}).get("degraded_conditions") is True:
+            trace.append("R-06b:connectivite_a_ameliorer:contexte_meteo_degrade")
+            return build(Decision.IMPROVE_CONNECTIVITY)
         return build(Decision.REQUEST_QOD)
+
+    # --- R-06c : annulation proposée, jamais auto-exécutée (HITL systématique).
+    if should_propose_cancel(scored_state, risk_level):
+        trace.append("R-06c:annulation_proposee:cargo_critique_risque_critique")
+        return build(Decision.CANCEL_DELIVERY)
 
     # --- R-07 : le problème est le trajet, pas le réseau.
     if should_recommend_alternative_route(scored_state, risk_level):
         trace.append("R-07:reroutage_pertinent:incident_localise_et_marge_suffisante")
-        return build(Decision.RECOMMEND_ALTERNATIVE_ROUTE)
+        return build(Decision.PROPOSE_ROUTE_CHANGE)
 
-    # --- R-08 : informer sans agir.
+    # --- R-08 : informer sans agir (ALERT si grave, NOTIFY sinon).
     if should_notify_manager(scored_state, risk_level):
+        if risk_level == RiskLevel.CRITICAL or incident_severity == Severity.CRITICAL:
+            trace.append("R-08b:alerte_critique:notification_et_alerte")
+            return build(Decision.ALERT)
         trace.append("R-08:notification_manager_justifiee")
         return build(Decision.NOTIFY_MANAGER)
 
@@ -1110,10 +1370,12 @@ __all__ = [
     "RISK_LEVEL_THRESHOLDS",
     "STALE_LOCATION_SECONDS",
     "TEXT_RISK_SCALE",
+    "AlertCategory",
     "CongestionLevel",
     "Criticality",
     "Decision",
     "IncidentType",
+    "Recipient",
     "RiskLevel",
     "RuleEvaluation",
     "SecurityCheckType",
@@ -1122,6 +1384,8 @@ __all__ = [
     "TerminalCargoStatus",
     "aggregate_security_status",
     "classify_incident",
+    "decide_alert_category",
+    "decide_recipients",
     "has_unresolved_security_alert",
     "classify_risk_level",
     "collect_missing_information",
@@ -1134,6 +1398,9 @@ __all__ = [
     "normalize_congestion_level",
     "normalize_upper",
     "requires_human_approval",
+    "route_status_factor",
     "should_notify_manager",
+    "should_propose_cancel",
     "should_recommend_alternative_route",
+    "weather_factor",
 ]

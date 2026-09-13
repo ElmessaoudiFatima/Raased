@@ -53,7 +53,7 @@ export function Topbar({
           </div>
           {orgPending && (
             <span className="badge ml-2 bg-amber-500/20 text-amber-300 border border-amber-500/30">
-              Entreprise en attente d'approbation
+              Company pending approval
             </span>
           )}
         </div>
@@ -62,7 +62,7 @@ export function Topbar({
           <button
             onClick={() => router.push("/dashboard/alerts")}
             className="relative rounded-xl border border-slate-800 bg-[#0f172a] p-2.5 text-slate-300 transition hover:bg-slate-800 hover:text-white"
-            title="Alertes"
+            title="Alerts"
           >
             <Bell className="h-4 w-4" />
             {alerts > 0 && (
@@ -75,7 +75,7 @@ export function Topbar({
           {/* Profile button */}
           <button
             onClick={() => router.push("/dashboard/profile")}
-            title="Mon profil & photo"
+            title="My Profile & Photo"
             className="flex items-center gap-2 rounded-xl border border-slate-800 bg-[#0f172a] px-2.5 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-blue-500/50 hover:bg-slate-800/80"
           >
             {user?.avatar_url ? (
@@ -96,7 +96,7 @@ export function Topbar({
             onClick={logout}
             className="hidden items-center gap-1.5 rounded-xl border border-slate-800 bg-[#0f172a] px-3 py-2 text-xs font-semibold text-slate-300 transition hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 sm:flex"
           >
-            <LogOut className="h-3.5 w-3.5" /> Quitter
+            <LogOut className="h-3.5 w-3.5" /> Sign Out
           </button>
         </div>
       </div>

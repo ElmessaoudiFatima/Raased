@@ -78,23 +78,23 @@ export default function AdminDashboardPage() {
   }
 
   const statusPieData = [
-    { name: "Approuvées", value: stats.approved },
-    { name: "En attente", value: stats.pending },
-    { name: "Rejetées", value: stats.rejected },
+    { name: "Approved", value: stats.approved },
+    { name: "Pending", value: stats.pending },
+    { name: "Rejected", value: stats.rejected },
   ].filter((d) => d.value > 0);
 
   // Growth trend mock data based on live stats
   const trendData = [
-    { month: "Jan", Inscriptions: Math.max(1, stats.total_organizations - 3), Cargaisons: Math.max(2, stats.cargos - 4) },
-    { month: "Fév", Inscriptions: Math.max(1, stats.total_organizations - 2), Cargaisons: Math.max(3, stats.cargos - 2) },
-    { month: "Mar", Inscriptions: stats.total_organizations, Cargaisons: stats.cargos },
+    { month: "Jan", Registrations: Math.max(1, stats.total_organizations - 3), Cargo: Math.max(2, stats.cargos - 4) },
+    { month: "Feb", Registrations: Math.max(1, stats.total_organizations - 2), Cargo: Math.max(3, stats.cargos - 2) },
+    { month: "Mar", Registrations: stats.total_organizations, Cargo: stats.cargos },
   ];
 
   return (
     <div>
       <Topbar
-        title="Tableau de bord Super Administrateur"
-        subtitle="Supervision globale des organisations, corridors MENA et sécurité opérationnelle"
+        title="Super Administrator Dashboard"
+        subtitle="Global supervision of organizations, MENA corridors, and operational security"
         onMenu={openMobileMenu}
       />
 
@@ -105,7 +105,7 @@ export default function AdminDashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                  Entreprises Actives
+                  Active Companies
                 </p>
                 <p className="mt-2 text-3xl font-extrabold text-white">{stats.approved}</p>
               </div>
@@ -114,8 +114,8 @@ export default function AdminDashboardPage() {
               </div>
             </div>
             <div className="mt-3 flex items-center justify-between text-xs text-slate-400 pt-2 border-t border-slate-800">
-              <span>Total inscrites : {stats.total_organizations}</span>
-              <span className="text-emerald-400 font-semibold">{stats.pending} en attente</span>
+              <span>Total registered: {stats.total_organizations}</span>
+              <span className="text-emerald-400 font-semibold">{stats.pending} pending</span>
             </div>
           </Card>
 
@@ -123,7 +123,7 @@ export default function AdminDashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                  Demandes en Attente
+                  Pending Requests
                 </p>
                 <p className="mt-2 text-3xl font-extrabold text-amber-400">{stats.pending}</p>
               </div>
@@ -133,7 +133,7 @@ export default function AdminDashboardPage() {
             </div>
             <div className="mt-3 flex items-center justify-between text-xs text-slate-400 pt-2 border-t border-slate-800">
               <Link href="/dashboard/admin/requests" className="text-blue-400 hover:underline flex items-center gap-1">
-                Traiter les dossiers <ArrowRight className="h-3 w-3" />
+                Process requests <ArrowRight className="h-3 w-3" />
               </Link>
             </div>
           </Card>
@@ -142,7 +142,7 @@ export default function AdminDashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                  Comptes Utilisateurs
+                  User Accounts
                 </p>
                 <p className="mt-2 text-3xl font-extrabold text-white">{stats.total_users}</p>
               </div>
@@ -152,7 +152,7 @@ export default function AdminDashboardPage() {
             </div>
             <div className="mt-3 flex items-center justify-between text-xs text-slate-400 pt-2 border-t border-slate-800">
               <span>{stats.managers} managers</span>
-              <span className="text-cyan-400 font-semibold">{stats.drivers} chauffeurs</span>
+              <span className="text-cyan-400 font-semibold">{stats.drivers} drivers</span>
             </div>
           </Card>
 
@@ -160,7 +160,7 @@ export default function AdminDashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                  Cargaisons en Transit
+                  Cargo in Transit
                 </p>
                 <p className="mt-2 text-3xl font-extrabold text-cyan-400">{stats.in_transit}</p>
               </div>
@@ -169,8 +169,8 @@ export default function AdminDashboardPage() {
               </div>
             </div>
             <div className="mt-3 flex items-center justify-between text-xs text-slate-400 pt-2 border-t border-slate-800">
-              <span>Total historique : {stats.cargos}</span>
-              <span className="text-emerald-400 font-semibold">QoD Active</span>
+              <span>Historical total: {stats.cargos}</span>
+              <span className="text-emerald-400 font-semibold">Active QoD</span>
             </div>
           </Card>
         </div>
@@ -181,8 +181,8 @@ export default function AdminDashboardPage() {
           <Card className="p-6 border-slate-800 bg-[#0f172a]/90 space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-base font-bold text-white">Statut des Entreprises Adhérentes</h3>
-                <p className="text-xs text-slate-400">Répartition des comptes créés</p>
+                <h3 className="text-base font-bold text-white">Member Companies Status</h3>
+                <p className="text-xs text-slate-400">Distribution of created accounts</p>
               </div>
               <Building2 className="h-5 w-5 text-blue-400" />
             </div>
@@ -222,15 +222,15 @@ export default function AdminDashboardPage() {
           <Card className="p-6 border-slate-800 bg-[#0f172a]/90 space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-base font-bold text-white">Répartition Géographique MENA</h3>
-                <p className="text-xs text-slate-400">Présence logistique par pays de la région</p>
+                <h3 className="text-base font-bold text-white">MENA Geographic Distribution</h3>
+                <p className="text-xs text-slate-400">Logistics presence by country in the region</p>
               </div>
               <Globe className="h-5 w-5 text-cyan-400" />
             </div>
 
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={stats.mena_distribution.length ? stats.mena_distribution : [{ country: "Maroc", count: 3 }]}>
+                <BarChart data={stats.mena_distribution.length ? stats.mena_distribution : [{ country: "Morocco", count: 3 }]}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
                   <XAxis dataKey="country" stroke="#64748b" fontSize={11} />
                   <YAxis stroke="#64748b" allowDecimals={false} fontSize={11} />
@@ -242,7 +242,7 @@ export default function AdminDashboardPage() {
                       color: "#f8fafc",
                     }}
                   />
-                  <Bar dataKey="count" name="Entreprises" fill="#2563eb" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="count" name="Companies" fill="#2563eb" radius={[6, 6, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -255,8 +255,8 @@ export default function AdminDashboardPage() {
           <Card className="p-6 border-slate-800 bg-[#0f172a]/90 lg:col-span-2 space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-base font-bold text-white">Croissance & Activité de la Plateforme</h3>
-                <p className="text-xs text-slate-400">Évolution trimestrielle des inscriptions et du fret surveillé</p>
+                <h3 className="text-base font-bold text-white">Platform Growth & Activity</h3>
+                <p className="text-xs text-slate-400">Quarterly evolution of registrations and monitored freight</p>
               </div>
               <TrendingUp className="h-5 w-5 text-emerald-400" />
             </div>
@@ -276,8 +276,8 @@ export default function AdminDashboardPage() {
                     }}
                   />
                   <Legend />
-                  <Bar dataKey="Inscriptions" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="Cargaisons" fill="#06b6d4" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="Registrations" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="Cargo" fill="#06b6d4" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -287,26 +287,26 @@ export default function AdminDashboardPage() {
           <Card className="p-6 border-slate-800 bg-[#0f172a]/90 space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-base font-bold text-white">Derniers Audits</h3>
-                <p className="text-xs text-slate-400">Traçabilité & Sécurité</p>
+                <h3 className="text-base font-bold text-white">Recent Audits</h3>
+                <p className="text-xs text-slate-400">Traceability & Security</p>
               </div>
               <ShieldCheck className="h-5 w-5 text-purple-400" />
             </div>
 
             <div className="space-y-3">
               {stats.recent_audits.length === 0 ? (
-                <p className="text-xs text-slate-500">Aucun audit récent enregistré.</p>
+                <p className="text-xs text-slate-500">No recent audits recorded.</p>
               ) : (
                 stats.recent_audits.map((a) => (
                   <div key={a.id} className="rounded-xl border border-slate-800/80 bg-slate-900/60 p-3 text-xs space-y-1">
                     <div className="flex items-center justify-between">
                       <span className="font-semibold text-blue-400">{a.action}</span>
                       <span className="text-[10px] text-slate-500">
-                        {new Date(a.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+                        {new Date(a.created_at).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
                       </span>
                     </div>
                     <p className="text-slate-300 truncate">{a.details}</p>
-                    <p className="text-[10px] text-slate-500 truncate">{a.actor_email || "Système"}</p>
+                    <p className="text-[10px] text-slate-500 truncate">{a.actor_email || "System"}</p>
                   </div>
                 ))
               )}
@@ -316,7 +316,7 @@ export default function AdminDashboardPage() {
               href="/dashboard/admin/audit"
               className="inline-flex items-center justify-center w-full rounded-xl border border-slate-800 bg-slate-800/60 py-2.5 text-xs font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition"
             >
-              Consulter tout le journal d'audit <ArrowRight className="h-3 w-3 ml-1.5" />
+              View full audit log <ArrowRight className="h-3 w-3 ml-1.5" />
             </Link>
           </Card>
         </div>

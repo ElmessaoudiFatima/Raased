@@ -46,7 +46,7 @@ const MapCore = dynamic(() => import("@/components/MapCore"), {
   ssr: false,
   loading: () => (
     <div className="flex h-full w-full items-center justify-center bg-[#0a101d] text-sm text-slate-400">
-      Chargement de la carte…
+      Loading map…
     </div>
   ),
 });

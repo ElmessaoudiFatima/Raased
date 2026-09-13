@@ -17,7 +17,7 @@ interface LoginResponse {
 
 export default function LoginPage() {
   const router = useRouter();
-  const { lang, changeLanguage, t, isRTL } = useLanguage();
+  const { t, isRTL } = useLanguage();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [show, setShow] = useState(false);
@@ -40,7 +40,7 @@ export default function LoginPage() {
   };
 
   return (
-    <AuthShell currentLang={lang} onLanguageChange={changeLanguage}>
+    <AuthShell>
       <div className={isRTL ? "text-right" : "text-left"}>
         <h2 className="text-2xl font-bold tracking-tight text-white">
           {t.welcome}

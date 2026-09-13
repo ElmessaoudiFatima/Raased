@@ -37,7 +37,7 @@ export default function ManagersPage() {
   const load = () => {
     get<{ managers: ManagerRow[] }>("/managers/managers")
       .then((d) => setManagers(d.managers))
-      .catch(() => notify("Impossible de charger les managers.", "error"))
+      .catch(() => notify("Failed to load managers.", "error"))
       .finally(() => setLoading(false));
   };
 
@@ -48,12 +48,12 @@ export default function ManagersPage() {
     setSaving(true);
     try {
       await post("/managers/managers/invite", form);
-      notify("Invitation envoyée au nouveau manager.");
+      notify("Invitation sent to the new manager.");
       setOpen(false);
       setForm({ first_name: "", last_name: "", email: "", job_title: "", phone: "" });
       load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Invitation impossible.");
+      setError(err instanceof Error ? err.message : "Failed to send invitation.");
     } finally {
       setSaving(false);
     }
@@ -63,16 +63,16 @@ export default function ManagersPage() {
     <div>
       <Topbar
         title="Managers"
-        subtitle="Partagez la gestion de l'entreprise avec d'autres managers"
+        subtitle="Share company management with other managers"
         onMenu={openMobileMenu}
       />
       <div className="p-6">
         <div className="mb-5 flex items-center justify-between">
           <p className="text-sm text-slate-500">
-            {managers.length} manager(s) dans l'entreprise
+            {managers.length} manager(s) in the company
           </p>
           <Button onClick={() => setOpen(true)}>
-            <UserRoundPlus className="h-4 w-4" /> Inviter un manager
+            <UserRoundPlus className="h-4 w-4" /> Invite a manager
           </Button>
         </div>
 
@@ -83,8 +83,8 @@ export default function ManagersPage() {
         ) : managers.length === 0 ? (
           <EmptyState
             icon={<UserCog className="h-8 w-8" />}
-            title="Aucun manager"
-            description="Invitez un collègue pour gérer la flotte à plusieurs."
+            title="No managers"
+            description="Invite a colleague to manage the fleet together."
           />
         ) : (
           <Card className="overflow-hidden">
@@ -93,9 +93,9 @@ export default function ManagersPage() {
                 <thead>
                   <tr className="border-b border-slate-100 bg-slate-50/70 text-xs uppercase tracking-wide text-slate-500">
                     <th className="px-5 py-3 font-semibold">Manager</th>
-                    <th className="px-5 py-3 font-semibold">Fonction</th>
-                    <th className="px-5 py-3 font-semibold">E-mail</th>
-                    <th className="px-5 py-3 font-semibold">Statut</th>
+                    <th className="px-5 py-3 font-semibold">Role</th>
+                    <th className="px-5 py-3 font-semibold">Email</th>
+                    <th className="px-5 py-3 font-semibold">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -110,7 +110,7 @@ export default function ManagersPage() {
                           <span className="font-semibold text-slate-700">
                             {m.first_name} {m.last_name}
                             {m.current && (
-                              <span className="ml-2 badge bg-teal-100 text-teal-700">vous</span>
+                              <span className="ml-2 badge bg-teal-100 text-teal-700">you</span>
                             )}
                           </span>
                         </div>
@@ -132,40 +132,40 @@ export default function ManagersPage() {
           </Card>
         )}
 
-        <Modal open={open} onClose={() => setOpen(false)} title="Inviter un manager">
+        <Modal open={open} onClose={() => setOpen(false)} title="Invite a manager">
           <div className="space-y-4">
             <p className="text-sm text-slate-500">
-              Le manager invité gérera la même entreprise et recevra un e-mail pour créer son mot de passe.
+              The invited manager will manage the same company and receive an email to create their password.
             </p>
             <div className="grid grid-cols-2 gap-4">
               <Input
-                label="Prénom"
+                label="First Name"
                 value={form.first_name}
                 onChange={(e) => setForm((f) => ({ ...f, first_name: e.target.value }))}
-                placeholder="Salma"
+                placeholder="Jane"
               />
               <Input
-                label="Nom"
+                label="Last Name"
                 value={form.last_name}
                 onChange={(e) => setForm((f) => ({ ...f, last_name: e.target.value }))}
-                placeholder="Idrissi"
+                placeholder="Doe"
               />
             </div>
             <Input
-              label="Fonction"
+              label="Role"
               value={form.job_title}
               onChange={(e) => setForm((f) => ({ ...f, job_title: e.target.value }))}
-              placeholder="Directrice commerciale"
+              placeholder="Sales Director"
             />
             <Input
-              label="E-mail professionnel"
+              label="Professional Email"
               type="email"
               value={form.email}
               onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-              placeholder="salma.idrissi@entreprise.com"
+              placeholder="jane.doe@company.com"
             />
             <Input
-              label="Téléphone (optionnel)"
+              label="Phone (optional)"
               value={form.phone}
               onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
               placeholder="+212 6 ..."
@@ -177,14 +177,14 @@ export default function ManagersPage() {
             )}
             <div className="flex justify-end gap-3 pt-2">
               <Button variant="outline" onClick={() => setOpen(false)}>
-                Annuler
+                Cancel
               </Button>
               <Button
                 loading={saving}
                 onClick={invite}
                 disabled={!form.first_name || !form.last_name || !form.email}
               >
-                Envoyer l'invitation
+                Send invitation
               </Button>
             </div>
           </div>

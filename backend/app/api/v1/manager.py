@@ -210,7 +210,7 @@ async def create_org_driver(
         "email_verified": driver.email_verified,
         "invitation_link": invitation_link,
         "driver": driver_data,
-        "message": "Compte conducteur créé et email d'invitation envoyé.",
+        "message": "Driver account created and invitation email sent.",
     }
 
 
@@ -237,7 +237,7 @@ async def update_org_driver(
     )
     driver = res.scalar_one_or_none()
     if not driver:
-        raise HTTPException(status_code=404, detail="Conducteur introuvable.")
+        raise HTTPException(status_code=404, detail="Driver not found.")
 
     if payload.first_name is not None:
         driver.first_name = payload.first_name
@@ -276,12 +276,12 @@ async def delete_org_driver(
     )
     driver = res.scalar_one_or_none()
     if not driver:
-        raise HTTPException(status_code=404, detail="Conducteur introuvable.")
+        raise HTTPException(status_code=404, detail="Driver not found.")
 
     await db.execute(delete(AccountInvitation).where(AccountInvitation.user_id == driver_id))
     await db.delete(driver)
     await db.commit()
-    return {"message": "Conducteur supprimé avec succès."}
+    return {"message": "Driver deleted successfully."}
 
 
 @router.post("/drivers/{driver_id}/resend-invitation")
@@ -299,7 +299,7 @@ async def resend_driver_invitation(
     )
     driver = res.scalar_one_or_none()
     if not driver:
-        raise HTTPException(status_code=404, detail="Conducteur introuvable.")
+        raise HTTPException(status_code=404, detail="Driver not found.")
 
     token = secrets.token_urlsafe(32)
     expires_at = datetime.now(timezone.utc) + timedelta(hours=48)
@@ -333,7 +333,7 @@ async def resend_driver_invitation(
 
     return {
         "invitation_link": invitation_link,
-        "message": "Invitation renvoyée avec succès.",
+        "message": "Invitation resent successfully.",
     }
 
 
@@ -357,11 +357,11 @@ async def update_driver_status(
     )
     driver = res.scalar_one_or_none()
     if not driver:
-        raise HTTPException(status_code=404, detail="Conducteur introuvable.")
+        raise HTTPException(status_code=404, detail="Driver not found.")
 
     driver.is_active = payload.is_active
     await db.commit()
-    return {"message": "Statut mis à jour.", "is_active": driver.is_active}
+    return {"message": "Status updated.", "is_active": driver.is_active}
 
 
 # ─────────────────────────────────────────────
@@ -415,13 +415,13 @@ async def acknowledge_alert(
     )
     alert = res.scalar_one_or_none()
     if not alert:
-        raise HTTPException(status_code=404, detail="Alerte introuvable.")
+        raise HTTPException(status_code=404, detail="Alert not found.")
 
     alert.status = "ACKNOWLEDGED"
     alert.acknowledged_at = datetime.now(timezone.utc)
     alert.acknowledged_by = current_user.id
     await db.commit()
-    return {"message": "Alerte prise en compte.", "status": alert.status}
+    return {"message": "Alert acknowledged.", "status": alert.status}
 
 
 # ─────────────────────────────────────────────
@@ -1173,7 +1173,7 @@ def _geojson_to_wkt(geojson: Dict[str, Any]) -> WKTElement:
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Géométrie GeoJSON invalide : {exc}",
+            detail=f"Invalid GeoJSON geometry: {exc}",
         )
 
 
@@ -1193,7 +1193,7 @@ async def _get_corridor_for_manager(
     if not corridor:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Corridor introuvable ou non accessible.",
+            detail="Corridor not found or not accessible.",
         )
     return corridor
 
@@ -1221,13 +1221,13 @@ async def get_corridor_weather_route(
     org_id = _require_org(current_user)
     corridor = await corridor_service.get_corridor(db, corridor_id, org_id)
     if not corridor:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Corridor introuvable.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Corridor not found.")
     try:
         return await get_corridor_weather(db, corridor_id)
     except WeatherAPIError as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"Service météo indisponible : {exc}",
+            detail=f"Weather service unavailable: {exc}",
         )
 
 
@@ -1357,7 +1357,7 @@ async def get_risk_zone(
     )
     row = res.first()
     if not row:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Zone introuvable.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Zone not found.")
     zone, geojson = row
     return _zone_out(zone, geojson)
 
@@ -1382,7 +1382,7 @@ async def update_risk_zone(
     )
     zone = res.scalar_one_or_none()
     if not zone:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Zone introuvable.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Zone not found.")
 
     if payload.name is not None:
         zone.name = payload.name
@@ -1427,7 +1427,7 @@ async def delete_risk_zone(
     )
     zone = res.scalar_one_or_none()
     if not zone:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Zone introuvable.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Zone not found.")
 
     await db.delete(zone)
     await db.commit()
@@ -1507,7 +1507,7 @@ async def get_risk_assessment(
     if not assessment:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Évaluation de risque introuvable.",
+            detail="Risk assessment not found.",
         )
     return _assessment_out(assessment)
 
@@ -1598,7 +1598,7 @@ async def get_agent_decision(
     if not decision:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Décision introuvable.",
+            detail="Decision not found.",
         )
     return _decision_out(decision)
 
@@ -1647,7 +1647,7 @@ async def list_ai_decisions(
                     else None
                 ),
                 "cargo_reference": str(d.cargo_id)[:8],
-                "driver_name": "Conducteur",
+                "driver_name": "Driver",
             }
             for d in decisions
         ]
@@ -1710,7 +1710,7 @@ async def invite_co_manager(
     current_user: User = Depends(require_role("MANAGER")),
 ):
     if not current_user.organization_id:
-        raise HTTPException(status_code=400, detail="Manager sans organisation.")
+        raise HTTPException(status_code=400, detail="Manager without organization.")
 
     existing = await db.execute(
         select(User).where(User.email == str(payload.email))
@@ -1718,7 +1718,7 @@ async def invite_co_manager(
     if existing.scalar_one_or_none():
         raise HTTPException(
             status_code=409,
-            detail="Un compte avec cet email existe déjà."
+            detail="An account with this email already exists."
         )
 
     token = secrets.token_urlsafe(32)
@@ -1771,7 +1771,7 @@ async def invite_co_manager(
         pass
 
     return {
-        "message": "Invitation envoyée au gestionnaire.",
+        "message": "Invitation sent to manager.",
         "invitation_link": invitation_link,
     }
 @router.patch(

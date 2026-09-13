@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import FileResponse
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from pydantic import BaseModel
 
 from app.api.deps import get_current_user, require_role
 from app.db.models.organization_documents import OrganizationDocument
@@ -39,6 +40,8 @@ router = APIRouter(
     dependencies=[Depends(require_role("ADMIN"))],
 )
 
+from app.db.models.users import User
+from app.services import admin_service
 
 # ─────────────────────────────────────────────
 # Liste des organisations
@@ -119,7 +122,7 @@ async def get_org(org_id: UUID, db: AsyncSession = Depends(get_db)):
     if result is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Organisation introuvable.",
+            detail="Organization not found.",
         )
     org, manager = result
 
@@ -185,7 +188,7 @@ async def download_document(
     if doc is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Document introuvable.",
+            detail="Document not found.",
         )
 
     file_path = get_document_file_path(doc)
@@ -228,12 +231,12 @@ async def approve_org(
     if org is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Organisation introuvable.",
+            detail="Organization not found.",
         )
     if org.status != "APPROVED":
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"L'organisation est déjà en statut «{org.status}».",
+            detail=f"Organization is already in status '{org.status}'.",
         )
     return org
 
@@ -266,11 +269,59 @@ async def reject_org(
     if org is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Organisation introuvable.",
+            detail="Organization not found.",
         )
     if org.status != "REJECTED":
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"L'organisation est déjà en statut «{org.status}».",
+            detail=f"Organization is already in status '{org.status}'.",
         )
     return org
+class UserStatusUpdate(BaseModel):
+    action: str  # "enable" | "disable"
+
+
+@router.get("/stats", summary="Global admin dashboard stats")
+async def get_stats(db: AsyncSession = Depends(get_db)):
+    return {"stats": await admin_service.get_admin_stats(db)}
+
+
+@router.get("/users", summary="List all platform users")
+async def list_users(db: AsyncSession = Depends(get_db)):
+    return {"users": await admin_service.list_all_users(db)}
+
+
+@router.patch("/users/{user_id}/status", summary="Enable or disable a user account")
+async def patch_user_status(
+    user_id: UUID,
+    payload: UserStatusUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    try:
+        user = await admin_service.update_user_status(db, user_id, payload.action, current_user)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
+    return {"message": "Status updated.", "is_active": user.is_active}
+
+
+@router.delete("/users/{user_id}", summary="Permanently delete a user account")
+async def remove_user(
+    user_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    try:
+        deleted = await admin_service.delete_user(db, user_id, current_user)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+    if not deleted:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
+    return {"message": "User deleted successfully."}
+
+
+@router.get("/audit", summary="Full audit log")
+async def get_audit_log(db: AsyncSession = Depends(get_db)):
+    return {"logs": await admin_service.list_audit_logs(db)}

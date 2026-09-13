@@ -44,7 +44,7 @@ export default function LiveMapPage() {
       setData(d);
       setLastRefresh(new Date());
     } catch (err) {
-      console.error("Erreur de chargement de la carte flotte:", err);
+      console.error("Error loading fleet map:", err);
     } finally {
       setLoading(false);
     }
@@ -65,8 +65,8 @@ export default function LiveMapPage() {
   return (
     <div className="flex h-screen flex-col bg-[#0a101d] overflow-hidden">
       <Topbar
-        title="Carte Flotte & Corridors de l'Entreprise"
-        subtitle="Géolocalisation en temps réel des cargaisons, suivi des trackers GPS et surveillance des corridors"
+        title="Fleet Map & Company Corridors"
+        subtitle="Real-time shipment geolocation, GPS tracking, and corridor surveillance"
         onMenu={openMobileMenu}
       />
       <div className="relative flex-1 w-full min-h-0">
@@ -75,7 +75,7 @@ export default function LiveMapPage() {
             <div className="flex h-full w-full items-center justify-center bg-[#0a101d]">
               <div className="flex flex-col items-center gap-3">
                 <Spinner />
-                <p className="text-xs text-slate-400 font-medium">Chargement des positions GPS de la flotte…</p>
+                <p className="text-xs text-slate-400 font-medium">Loading fleet GPS positions…</p>
               </div>
             </div>
           ) : (
@@ -102,11 +102,11 @@ export default function LiveMapPage() {
               className="inline-flex items-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-500 px-4 py-2.5 text-xs font-bold text-white shadow-xl shadow-blue-600/30 transition ring-1 ring-blue-400/30"
             >
               <RotateCw className={`h-4 w-4 ${paused ? "text-amber-300" : "animate-spin-slow"}`} />
-              {paused ? "Reprendre le direct" : "Rafraîchir les positions"}
+              {paused ? "Resume Live Tracking" : "Refresh Positions"}
             </button>
             <button
               onClick={load}
-              title="Forcer la mise à jour immédiate"
+              title="Force immediate update"
               className="rounded-xl border border-slate-700/80 bg-[#0f172a]/90 hover:bg-[#1e293b] p-2.5 text-slate-300 shadow-xl backdrop-blur transition"
             >
               <RotateCw className="h-4 w-4" />
@@ -114,10 +114,10 @@ export default function LiveMapPage() {
           </div>
           <div className="flex items-center gap-2 text-[11px] font-semibold text-slate-300">
             <span className="rounded-xl border border-slate-800 bg-[#0a101d]/90 px-3 py-1.5 shadow-xl backdrop-blur">
-              🚚 {data.trips.length} cargaison(s) · {data.trips.filter(t => t.status === "IN_TRANSIT").length} en transit
+              🚚 {data.trips.length} shipment(s) · {data.trips.filter(t => t.status === "IN_TRANSIT").length} in transit
             </span>
             <span className="rounded-xl border border-slate-800 bg-[#0a101d]/90 px-3 py-1.5 shadow-xl backdrop-blur text-slate-400">
-              MAJ {lastRefresh.toLocaleTimeString("fr-FR")}
+              Updated {lastRefresh.toLocaleTimeString("en-US")}
             </span>
           </div>
         </div>
@@ -171,11 +171,11 @@ function LivePanel({
         className="flex w-full items-center justify-between rounded-2xl border border-slate-800 bg-[#0f172a]/95 px-4 py-3 text-white shadow-2xl backdrop-blur transition hover:border-blue-500/50"
       >
         <span className="flex items-center gap-2 text-sm font-bold">
-          <RadioTower className="h-4 w-4 text-blue-400" /> Cargaisons de l'entreprise
+          <RadioTower className="h-4 w-4 text-blue-400" /> Company Shipments
         </span>
         <span className="flex items-center gap-1.5 rounded-full bg-blue-500/20 px-2.5 py-0.5 text-xs font-extrabold text-blue-300 border border-blue-500/30">
           <span className="h-2 w-2 rounded-full bg-emerald-400 animate-ping" />
-          {movingCount} active(s)
+          {movingCount} active
         </span>
       </button>
 
@@ -191,7 +191,7 @@ function LivePanel({
                   filter === "ALL" ? "bg-blue-600 text-white shadow-sm" : "text-slate-400 hover:text-white"
                 }`}
               >
-                Tous ({data.trips.length})
+                All ({data.trips.length})
               </button>
               <button
                 type="button"
@@ -200,7 +200,7 @@ function LivePanel({
                   filter === "IN_TRANSIT" ? "bg-blue-600 text-white shadow-sm" : "text-slate-400 hover:text-white"
                 }`}
               >
-                En transit ({data.trips.filter(t => t.status === "IN_TRANSIT").length})
+                In Transit ({data.trips.filter(t => t.status === "IN_TRANSIT").length})
               </button>
               <button
                 type="button"
@@ -209,7 +209,7 @@ function LivePanel({
                   filter === "PENDING" ? "bg-blue-600 text-white shadow-sm" : "text-slate-400 hover:text-white"
                 }`}
               >
-                En attente ({data.trips.filter(t => t.status === "PENDING").length})
+                Pending ({data.trips.filter(t => t.status === "PENDING").length})
               </button>
             </div>
 
@@ -219,7 +219,7 @@ function LivePanel({
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Rechercher cargaison, ville, type…"
+                placeholder="Search shipment, city, type…"
                 className="w-full rounded-xl border border-slate-800 bg-slate-950/80 pl-8 pr-3 py-1.5 text-xs text-white placeholder:text-slate-500 focus:border-blue-500 focus:outline-none"
               />
             </div>
@@ -230,7 +230,7 @@ function LivePanel({
             {filteredTrips.length === 0 ? (
               <div className="px-4 py-8 text-center text-xs text-slate-500">
                 <Truck className="h-8 w-8 mx-auto mb-2 text-slate-600 opacity-60" />
-                Aucune cargaison trouvée pour ce filtre.
+                No shipments found for this filter.
               </div>
             ) : (
               filteredTrips.map((t) => {
@@ -268,7 +268,7 @@ function LivePanel({
                               : "bg-slate-800 text-slate-300 border-slate-700"
                           }`}
                         >
-                          {t.status === "IN_TRANSIT" ? "EN TRANSIT" : t.status === "DELIVERED" ? "LIVRÉ" : "EN ATTENTE"}
+                          {t.status === "IN_TRANSIT" ? "IN TRANSIT" : t.status === "DELIVERED" ? "DELIVERED" : "PENDING"}
                         </span>
                       </div>
 

@@ -99,11 +99,11 @@ export default function CargosPage() {
         driver_id: assignForm.driver_id || null,
         tracker_id: assignForm.tracker_id || null,
       });
-      notify(`Assignation enregistrée pour ${assignCargo.reference} !`);
+      notify(`Assignment saved for ${assignCargo.reference}!`);
       setAssignModalOpen(false);
       load();
     } catch (err) {
-      setAssignError(err instanceof Error ? err.message : "Impossible de modifier l'assignation.");
+      setAssignError(err instanceof Error ? err.message : "Failed to update assignment.");
     } finally {
       setSavingAssign(false);
     }
@@ -112,7 +112,7 @@ export default function CargosPage() {
   const load = () => {
     get<any>("/managers/cargos")
       .then((d) => setCargos(Array.isArray(d) ? d : (d?.cargos ?? [])))
-      .catch(() => notify("Impossible de charger les cargaisons.", "error"))
+      .catch(() => notify("Unable to load shipments.", "error"))
       .finally(() => setLoading(false));
 
     get<any>("/managers/corridors")
@@ -156,13 +156,12 @@ export default function CargosPage() {
 
   const create = async () => {
     if (!form.corridor_id) {
-      setError("Veuillez sélectionner un corridor.");
+      setError("Please select a corridor.");
       return;
     }
     setError("");
     setSaving(true);
     try {
-      // 1. Création de la cargaison avec corridor, chauffeur et tracker
       const res = await post<any>("/managers/cargos", {
         corridor_id: form.corridor_id,
         type: form.type,
@@ -171,21 +170,20 @@ export default function CargosPage() {
         tracker_id: form.tracker_id || undefined,
       });
 
-      // 2. Assignation de sécurité séparée si nécessaire
       if (form.tracker_id && res?.id && !res?.tracker) {
         try {
           await post(`/managers/trackers/${form.tracker_id}/assign`, {
             cargo_id: res.id,
           });
         } catch (assignErr) {
-          console.warn("Assignation tracker:", assignErr);
+          console.warn("Tracker assignment:", assignErr);
         }
       }
 
       const selCorridor = corridorMap[form.corridor_id];
       const corridorLabel = selCorridor
         ? `${selCorridor.origin} → ${selCorridor.destination}`
-        : "Corridor sélectionné";
+        : "Selected corridor";
 
       setCreatedCargo({
         id: res.id,
@@ -195,10 +193,10 @@ export default function CargosPage() {
         criticality: res.criticality || form.criticality,
       });
 
-      notify(`Cargaison créée ! Référence générée : ${res.reference}`);
+      notify(`Shipment created! Reference generated: ${res.reference}`);
       load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Création impossible.");
+      setError(err instanceof Error ? err.message : "Creation failed.");
     } finally {
       setSaving(false);
     }
@@ -208,10 +206,10 @@ export default function CargosPage() {
     setActionId(id);
     try {
       await patch(`/managers/cargos/${id}/status`, { status });
-      notify(status === "DEPART" ? "Convoi lancé." : "Statut mis à jour.");
+      notify(status === "IN_TRANSIT" ? "Convoy dispatched." : "Status updated.");
       load();
     } catch (err) {
-      notify(err instanceof Error ? err.message : "Échec de la mise à jour.", "error");
+      notify(err instanceof Error ? err.message : "Update failed.", "error");
     } finally {
       setActionId(null);
     }
@@ -219,12 +217,12 @@ export default function CargosPage() {
 
   return (
     <div>
-      <Topbar title="Cargaisons" subtitle="Suivi des convois et des livraisons" onMenu={openMobileMenu} />
+      <Topbar title="Cargo Shipments" subtitle="Fleet convoy dispatch and delivery tracking" onMenu={openMobileMenu} />
       <div className="p-6">
         <div className="mb-5 flex items-center justify-between">
-          <p className="text-sm text-slate-500">{cargos.length} cargaison(s)</p>
+          <p className="text-sm text-slate-500">{cargos.length} shipment(s)</p>
           <Button onClick={handleOpenModal}>
-            <PackagePlus className="h-4 w-4" /> Nouvelle cargaison
+            <PackagePlus className="h-4 w-4" /> New Shipment
           </Button>
         </div>
 
@@ -235,8 +233,8 @@ export default function CargosPage() {
         ) : cargos.length === 0 ? (
           <EmptyState
             icon={<Boxes className="h-8 w-8" />}
-            title="Aucune cargaison"
-            description="Créez votre première cargaison et lancez le convoi."
+            title="No shipments"
+            description="Create your first cargo shipment and dispatch the convoy."
           />
         ) : (
           <Card className="overflow-hidden">
@@ -244,13 +242,13 @@ export default function CargosPage() {
               <table className="w-full text-left text-sm">
                 <thead>
                   <tr className="border-b border-slate-100 bg-slate-50/70 text-xs uppercase tracking-wide text-slate-500">
-                    <th className="px-5 py-3 font-semibold">Référence</th>
+                    <th className="px-5 py-3 font-semibold">Reference</th>
                     <th className="px-5 py-3 font-semibold">Type</th>
-                    <th className="px-5 py-3 font-semibold">Corridor / Itinéraire</th>
-                    <th className="px-5 py-3 font-semibold">Chauffeur</th>
-                    <th className="px-5 py-3 font-semibold">Véhicule</th>
-                    <th className="px-5 py-3 font-semibold">Criticité</th>
-                    <th className="px-5 py-3 font-semibold">Statut</th>
+                    <th className="px-5 py-3 font-semibold">Corridor / Route</th>
+                    <th className="px-5 py-3 font-semibold">Driver</th>
+                    <th className="px-5 py-3 font-semibold">Vehicle</th>
+                    <th className="px-5 py-3 font-semibold">Criticality</th>
+                    <th className="px-5 py-3 font-semibold">Status</th>
                     <th className="px-5 py-3 text-right font-semibold">Actions</th>
                   </tr>
                 </thead>
@@ -262,7 +260,7 @@ export default function CargosPage() {
                         <td className="px-5 py-3.5">
                           <p className="font-semibold text-raased-navy font-mono text-xs">{c.reference}</p>
                           {c.position && (
-                            <p className="text-xs text-raased-teal">Progression {c.position.progress_pct}%</p>
+                            <p className="text-xs text-raased-teal">Progress {c.position.progress_pct}%</p>
                           )}
                         </td>
                         <td className="px-5 py-3.5 text-slate-500">{c.type.replace(/_/g, " ")}</td>
@@ -283,7 +281,7 @@ export default function CargosPage() {
                           )}
                         </td>
                         <td className="px-5 py-3.5 text-slate-500">
-                          {c.driver ? `${c.driver.first_name} ${c.driver.last_name}` : "Non assigné"}
+                          {c.driver ? `${c.driver.first_name} ${c.driver.last_name}` : "Unassigned"}
                         </td>
                         <td className="px-5 py-3.5 text-slate-500">
                           {c.tracker?.label || c.tracker?.vehicle_registration || c.tracker?.device_id || "—"}
@@ -299,17 +297,17 @@ export default function CargosPage() {
                             <button
                               onClick={() => handleOpenAssign(c)}
                               className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition shadow-sm"
-                              title="Assigner chauffeur et véhicule"
+                              title="Assign driver and vehicle"
                             >
-                              <UserCheck className="h-3.5 w-3.5 text-raased-teal" /> Assigner
+                              <UserCheck className="h-3.5 w-3.5 text-raased-teal" /> Assign
                             </button>
                             {c.status === "PENDING" && (
                               <button
-                                onClick={() => changeStatus(c.id, "DEPART")}
+                                onClick={() => changeStatus(c.id, "IN_TRANSIT")}
                                 disabled={actionId === c.id}
                                 className="inline-flex items-center gap-1 rounded-lg bg-raased-teal px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-raased-navy disabled:opacity-50 transition"
                               >
-                                <Play className="h-3.5 w-3.5" /> Lancer
+                                <Play className="h-3.5 w-3.5" /> Dispatch
                               </button>
                             )}
                             {c.status === "IN_TRANSIT" && (
@@ -318,7 +316,7 @@ export default function CargosPage() {
                                 disabled={actionId === c.id}
                                 className="inline-flex items-center gap-1 rounded-lg border border-emerald-200 px-2.5 py-1.5 text-xs font-semibold text-emerald-600 hover:bg-emerald-50 disabled:opacity-50 transition"
                               >
-                                <Truck className="h-3.5 w-3.5" /> Livré
+                                <Truck className="h-3.5 w-3.5" /> Delivered
                               </button>
                             )}
                           </div>
@@ -338,51 +336,51 @@ export default function CargosPage() {
             setOpen(false);
             setCreatedCargo(null);
           }}
-          title={createdCargo ? "Cargaison enregistrée" : "Nouvelle cargaison"}
+          title={createdCargo ? "Shipment Registered" : "New Shipment"}
           wide
         >
           {createdCargo ? (
-            /* ── Affichage lecture seule après création ── */
+            /* ── Read-only view after creation ── */
             <div className="space-y-5 py-2">
               <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-6 text-center">
                 <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400">
                   <CheckCircle2 className="h-6 w-6" />
                 </div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-emerald-400">
-                  Cargaison créée avec succès
+                  Shipment created successfully
                 </p>
                 <div className="mt-3 inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-900/90 px-5 py-2.5 shadow-inner">
-                  <span className="text-xs text-slate-400 font-medium">Référence générée :</span>
+                  <span className="text-xs text-slate-400 font-medium">Generated Reference:</span>
                   <span className="font-mono text-xl font-extrabold text-emerald-300 tracking-wide">
                     {createdCargo.reference}
                   </span>
                 </div>
                 <p className="mt-2 text-xs text-slate-400">
-                  Cette référence unique a été attribuée automatiquement par le système.
+                  This unique reference has been automatically assigned by the system.
                 </p>
               </div>
 
               <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4 space-y-2.5 text-sm">
                 <div className="flex justify-between items-center">
-                  <span className="text-slate-400">Corridor :</span>
+                  <span className="text-slate-400">Corridor:</span>
                   <span className="font-semibold text-slate-200">{createdCargo.corridorLabel}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-slate-400">Type de marchandise :</span>
+                  <span className="text-slate-400">Cargo Type:</span>
                   <span className="font-semibold text-slate-200">{createdCargo.type.replace(/_/g, " ")}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-slate-400">Criticité :</span>
+                  <span className="text-slate-400">Criticality:</span>
                   <Badge value={createdCargo.criticality} />
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-slate-400">Statut initial :</span>
+                  <span className="text-slate-400">Initial Status:</span>
                   <Badge value="PENDING" />
                 </div>
                 {form.tracker_id && (
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-400">Tracker / Véhicule :</span>
-                    <span className="font-semibold text-emerald-400 text-xs">Assigné au convoi</span>
+                    <span className="text-slate-400">Tracker / Vehicle:</span>
+                    <span className="font-semibold text-emerald-400 text-xs">Assigned to convoy</span>
                   </div>
                 )}
               </div>
@@ -401,7 +399,7 @@ export default function CargosPage() {
                     });
                   }}
                 >
-                  Créer une autre cargaison
+                  Create another shipment
                 </Button>
                 <Button
                   onClick={() => {
@@ -409,24 +407,21 @@ export default function CargosPage() {
                     setOpen(false);
                   }}
                 >
-                  Terminer
+                  Done
                 </Button>
               </div>
             </div>
           ) : (
-            /* ── Formulaire de création ── */
+            /* ── Creation form ── */
             <div>
-              
-
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                {/* CORRIDOR (remplace Départ + Destination) */}
                 <div className="sm:col-span-2">
                   <Select
                     label="Corridor"
                     value={form.corridor_id}
                     onChange={(e) => setForm((f) => ({ ...f, corridor_id: e.target.value }))}
                   >
-                    <option value="">Sélectionner un corridor</option>
+                    <option value="">Select a corridor</option>
                     {corridors.map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.origin} → {c.destination} {c.name && c.name !== `${c.origin} → ${c.destination}` ? `(${c.name})` : ""}
@@ -435,48 +430,45 @@ export default function CargosPage() {
                   </Select>
                   {corridors.length === 0 && (
                     <p className="mt-1.5 text-xs text-amber-400">
-                      ⚠️ Aucun corridor configuré.{" "}
+                      ⚠️ No corridor configured.{" "}
                       <a href="/dashboard/corridors" className="underline font-semibold hover:text-amber-300">
-                        Créer un corridor d'abord →
+                        Create a corridor first →
                       </a>
                     </p>
                   )}
                 </div>
 
-                {/* TYPE DE MARCHANDISE (inchangé) */}
                 <Select
-                  label="Type de marchandise"
+                  label="Cargo Type"
                   value={form.type}
                   onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))}
                 >
-                  <option value="GENERAL">Marchandises générales</option>
-                  <option value="PHARMACEUTICAL">Pharmaceutique</option>
-                  <option value="ELECTRONICS">Électronique</option>
-                  <option value="FMCG">Grande consommation</option>
+                  <option value="GENERAL">General Merchandise</option>
+                  <option value="PHARMACEUTICAL">Pharmaceutical</option>
+                  <option value="ELECTRONICS">Electronics</option>
+                  <option value="FMCG">Consumer Goods (FMCG)</option>
                   <option value="TEXTILE">Textile</option>
-                  <option value="PERISHABLE">Périssable</option>
-                  <option value="HAZMAT">Matières dangereuses</option>
+                  <option value="PERISHABLE">Perishables</option>
+                  <option value="HAZMAT">Hazardous Materials</option>
                 </Select>
 
-                {/* CRITICITÉ (inchangé) */}
                 <Select
-                  label="Criticité"
+                  label="Criticality"
                   value={form.criticality}
                   onChange={(e) => setForm((f) => ({ ...f, criticality: e.target.value }))}
                 >
-                  <option value="LOW">Faible</option>
-                  <option value="MEDIUM">Moyenne</option>
-                  <option value="HIGH">Haute</option>
-                  <option value="CRITICAL">Critique</option>
+                  <option value="LOW">Low</option>
+                  <option value="MEDIUM">Medium</option>
+                  <option value="HIGH">High</option>
+                  <option value="CRITICAL">Critical</option>
                 </Select>
 
-                {/* TRACKER / VÉHICULE (inchangé) */}
                 <Select
-                  label="Tracker / véhicule"
+                  label="Tracker / Vehicle"
                   value={form.tracker_id}
                   onChange={(e) => setForm((f) => ({ ...f, tracker_id: e.target.value }))}
                 >
-                  <option value="">Non assigné</option>
+                  <option value="">Unassigned</option>
                   {trackers.map((t) => (
                     <option key={t.id} value={t.id}>
                       {t.label ? `${t.label} (${t.device_id})` : (t.vehicle_registration || t.device_id)}
@@ -484,13 +476,12 @@ export default function CargosPage() {
                   ))}
                 </Select>
 
-                {/* CHAUFFEUR (inchangé) */}
                 <Select
-                  label="Chauffeur"
+                  label="Driver"
                   value={form.driver_id}
                   onChange={(e) => setForm((f) => ({ ...f, driver_id: e.target.value }))}
                 >
-                  <option value="">Non assigné</option>
+                  <option value="">Unassigned</option>
                   {drivers.map((d) => (
                     <option key={d.id} value={d.id}>
                       {d.first_name} {d.last_name}
@@ -507,35 +498,35 @@ export default function CargosPage() {
 
               <div className="mt-5 flex justify-end gap-3">
                 <Button variant="outline" onClick={() => setOpen(false)}>
-                  Annuler
+                  Cancel
                 </Button>
                 <Button loading={saving} onClick={create} disabled={!form.corridor_id}>
-                  Créer la cargaison
+                  Create Shipment
                 </Button>
               </div>
             </div>
           )}
         </Modal>
 
-        {/* ── Modal d'assignation directe (Chauffeur + Véhicule / Tracker) ── */}
+        {/* ── Direct Assignment Modal (Driver + Vehicle / Tracker) ── */}
         <Modal
           open={assignModalOpen}
           onClose={() => setAssignModalOpen(false)}
-          title={assignCargo ? `Assigner le convoi : ${assignCargo.reference}` : "Assignation du convoi"}
+          title={assignCargo ? `Assign Shipment: ${assignCargo.reference}` : "Shipment Assignment"}
         >
           {assignCargo && (
             <div className="space-y-4 py-2">
               <p className="text-xs text-slate-500">
-                Sélectionnez le chauffeur et le véhicule (boîtier télématique tracker) pour ce convoi.
+                Select the designated driver and GPS tracker vehicle for this convoy.
               </p>
 
               <div className="space-y-4">
                 <Select
-                  label="Chauffeur"
+                  label="Driver"
                   value={assignForm.driver_id}
                   onChange={(e) => setAssignForm((f) => ({ ...f, driver_id: e.target.value }))}
                 >
-                  <option value="">Non assigné</option>
+                  <option value="">Unassigned</option>
                   {drivers.map((d) => (
                     <option key={d.id} value={d.id}>
                       {d.first_name} {d.last_name} ({d.email})
@@ -544,11 +535,11 @@ export default function CargosPage() {
                 </Select>
 
                 <Select
-                  label="Véhicule / Tracker"
+                  label="Vehicle / Tracker"
                   value={assignForm.tracker_id}
                   onChange={(e) => setAssignForm((f) => ({ ...f, tracker_id: e.target.value }))}
                 >
-                  <option value="">Non assigné</option>
+                  <option value="">Unassigned</option>
                   {trackers.map((t) => (
                     <option key={t.id} value={t.id}>
                       {t.label ? `${t.label} (${t.device_id})` : (t.vehicle_registration || t.device_id)}
@@ -565,10 +556,10 @@ export default function CargosPage() {
 
               <div className="mt-5 flex justify-end gap-3">
                 <Button variant="outline" onClick={() => setAssignModalOpen(false)}>
-                  Annuler
+                  Cancel
                 </Button>
                 <Button loading={savingAssign} onClick={saveAssign}>
-                  Enregistrer l'assignation
+                  Save Assignment
                 </Button>
               </div>
             </div>

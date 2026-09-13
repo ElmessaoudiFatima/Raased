@@ -38,7 +38,7 @@ export default function TrackersPage() {
   const load = () => {
     get<any>("/managers/trackers")
       .then((d) => setTrackers(Array.isArray(d) ? d : (d?.trackers ?? [])))
-      .catch(() => notify("Impossible de charger les trackers.", "error"))
+      .catch(() => notify("Failed to load trackers.", "error"))
       .finally(() => setLoading(false));
   };
 
@@ -46,11 +46,11 @@ export default function TrackersPage() {
 
   const create = async () => {
     if (!form.device_id.trim()) {
-      setError("Le numéro de série du boîtier (Device ID / IMEI) est requis.");
+      setError("Device serial number (Device ID / IMEI) is required.");
       return;
     }
     if (!form.msisdn.trim()) {
-      setError("Le numéro de la carte SIM (MSISDN) est requis pour les services CAMARA.");
+      setError("SIM card number (MSISDN) is required for CAMARA services.");
       return;
     }
 
@@ -62,12 +62,12 @@ export default function TrackersPage() {
         msisdn: form.msisdn.trim(),
         label: form.label.trim() || undefined,
       });
-      notify("Tracker enregistré avec succès.", "success");
+      notify("Tracker registered successfully.", "success");
       setOpen(false);
       setForm({ label: "", device_id: "", msisdn: "" });
       load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Enregistrement impossible.");
+      setError(err instanceof Error ? err.message : "Failed to register tracker.");
     } finally {
       setSaving(false);
     }
@@ -82,13 +82,13 @@ export default function TrackersPage() {
       });
       notify(
         inMaintenance
-          ? `Tracker ${tracker.label || tracker.device_id} mis en maintenance.`
-          : `Tracker ${tracker.label || tracker.device_id} réactivé avec succès.`,
+          ? `Tracker ${tracker.label || tracker.device_id} placed in maintenance.`
+          : `Tracker ${tracker.label || tracker.device_id} reactivated successfully.`,
         "success"
       );
       load();
     } catch (err) {
-      notify(err instanceof Error ? err.message : "Action impossible.", "error");
+      notify(err instanceof Error ? err.message : "Action failed.", "error");
     } finally {
       setTogglingId(null);
     }
@@ -96,12 +96,12 @@ export default function TrackersPage() {
 
   return (
     <div>
-      <Topbar title="Trackers" subtitle="Boîtiers de géolocalisation de la flotte" onMenu={openMobileMenu} />
+      <Topbar title="GPS Trackers" subtitle="Fleet geolocation hardware and tracker units" onMenu={openMobileMenu} />
       <div className="p-6">
         <div className="mb-5 flex items-center justify-between">
           <p className="text-sm text-slate-500">{trackers.length} tracker(s)</p>
           <Button onClick={() => setOpen(true)}>
-            <RadioTower className="h-4 w-4" /> Enregistrer un tracker
+            <RadioTower className="h-4 w-4" /> Register Tracker
           </Button>
         </div>
 
@@ -112,8 +112,8 @@ export default function TrackersPage() {
         ) : trackers.length === 0 ? (
           <EmptyState
             icon={<Radio className="h-8 w-8" />}
-            title="Aucun tracker"
-            description="Enregistrez un boîtier pour pouvoir suivre vos convois en temps réel."
+            title="No trackers"
+            description="Register a GPS device to track your shipments in real time."
           />
         ) : (
           <Card className="overflow-hidden">
@@ -121,11 +121,11 @@ export default function TrackersPage() {
               <table className="w-full text-left text-sm">
                 <thead>
                   <tr className="border-b border-slate-100 bg-slate-50/70 text-xs uppercase tracking-wide text-slate-500">
-                    <th className="px-5 py-3 font-semibold">Nom / Boîtier</th>
+                    <th className="px-5 py-3 font-semibold">Device Name / Unit</th>
                     <th className="px-5 py-3 font-semibold">Device ID / IMEI</th>
-                    <th className="px-5 py-3 font-semibold">Numéro de ligne (MSISDN)</th>
-                    <th className="px-5 py-3 font-semibold">Statut</th>
-                    <th className="px-5 py-3 font-semibold">Dernière activité</th>
+                    <th className="px-5 py-3 font-semibold">SIM Number (MSISDN)</th>
+                    <th className="px-5 py-3 font-semibold">Status</th>
+                    <th className="px-5 py-3 font-semibold">Last Activity</th>
                     <th className="px-5 py-3 text-right font-semibold">Actions</th>
                   </tr>
                 </thead>
@@ -153,8 +153,8 @@ export default function TrackersPage() {
                       </td>
                       <td className="px-5 py-3.5 text-xs text-slate-400">
                         {t.last_seen_at
-                          ? new Date(t.last_seen_at).toLocaleString("fr-FR")
-                          : "Jamais"}
+                          ? new Date(t.last_seen_at).toLocaleString("en-US")
+                          : "Never"}
                       </td>
                       <td className="px-5 py-3.5 text-right">
                         {t.status === "MAINTENANCE" && (
@@ -163,7 +163,7 @@ export default function TrackersPage() {
                             disabled={togglingId === t.id}
                             className="inline-flex items-center gap-1 rounded-lg border border-emerald-300 bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 disabled:opacity-50 transition"
                           >
-                            Réactiver
+                            Reactivate
                           </button>
                         )}
                         {t.status === "ACTIVE" && (
@@ -177,7 +177,7 @@ export default function TrackersPage() {
                         )}
                         {t.status === "ASSIGNED" && (
                           <span className="text-[11px] text-slate-400 italic">
-                            Assigné (en convoi)
+                            Assigned (in transit)
                           </span>
                         )}
                       </td>
@@ -189,29 +189,29 @@ export default function TrackersPage() {
           </Card>
         )}
 
-        <Modal open={open} onClose={() => setOpen(false)} title="Nouveau tracker">
+        <Modal open={open} onClose={() => setOpen(false)} title="Register New Tracker">
           <div className="space-y-4">
             <Input
-              label="Nom (optionnel)"
+              label="Device Name (optional)"
               value={form.label}
               onChange={(e) => setForm((f) => ({ ...f, label: e.target.value }))}
-              placeholder='Ex: "Camion Renault 1"'
+              placeholder='e.g., "Renault Truck 1"'
             />
             <Input
               label="Device ID / IMEI"
               value={form.device_id}
               onChange={(e) => setForm((f) => ({ ...f, device_id: e.target.value }))}
-              placeholder="Numéro de série du boîtier (ex: 860123456789012)"
+              placeholder="Device serial number (e.g., 860123456789012)"
             />
             <div>
               <Input
-                label="Numéro de ligne (MSISDN)"
+                label="Line Number (MSISDN)"
                 value={form.msisdn}
                 onChange={(e) => setForm((f) => ({ ...f, msisdn: e.target.value }))}
-                placeholder="Numéro de la carte SIM (ex: +212600000000)"
+                placeholder="SIM card number (e.g., +212600000000)"
               />
               <p className="mt-1 text-[11px] text-slate-400">
-                Indispensable pour les requêtes réseau CAMARA (Localisation, Qualité à la demande).
+                Essential for CAMARA network API requests (Device Location, Quality on Demand).
               </p>
             </div>
 
@@ -222,14 +222,14 @@ export default function TrackersPage() {
             )}
             <div className="flex justify-end gap-3 pt-2">
               <Button variant="outline" onClick={() => setOpen(false)}>
-                Annuler
+                Cancel
               </Button>
               <Button
                 loading={saving}
                 onClick={create}
                 disabled={!form.device_id.trim() || !form.msisdn.trim()}
               >
-                Enregistrer le tracker
+                Register Tracker
               </Button>
             </div>
           </div>

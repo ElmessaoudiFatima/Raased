@@ -75,15 +75,19 @@ export const DICTIONARY: Record<Language, Translations> = {
 const STORAGE_KEY = "raased_lang";
 
 export function useLanguage() {
-  const [lang, setLang] = useState<Language>("FR");
+  const [lang, setLang] = useState<Language>("EN");
 
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY) as Language | null;
       if (saved && (saved === "FR" || saved === "EN" || saved === "AR")) {
         setLang(saved);
+      } else {
+        setLang("EN");
       }
-    } catch {}
+    } catch {
+      setLang("EN");
+    }
   }, []);
 
   const changeLanguage = (newLang: Language) => {

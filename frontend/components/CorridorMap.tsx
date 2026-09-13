@@ -3,8 +3,30 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import circle from "@turf/circle";
 import { Loader2, RotateCcw, MapPin, Flag } from "lucide-react";
+
+function createCircleGeometry(
+  centerLon: number,
+  centerLat: number,
+  radiusKm: number,
+  steps = 64
+): RiskZoneGeometry {
+  const coords: [number, number][] = [];
+  const kmPerDegreeLat = 111.32;
+  const kmPerDegreeLon = 111.32 * Math.cos((centerLat * Math.PI) / 180);
+
+  for (let i = 0; i <= steps; i++) {
+    const angle = (i * 2 * Math.PI) / steps;
+    const dx = (radiusKm * Math.sin(angle)) / kmPerDegreeLon;
+    const dy = (radiusKm * Math.cos(angle)) / kmPerDegreeLat;
+    coords.push([centerLon + dx, centerLat + dy]);
+  }
+
+  return {
+    type: "Polygon",
+    coordinates: [coords],
+  };
+}
 
 export interface CorridorGeometry {
   type: "LineString";
@@ -292,12 +314,12 @@ export default function CorridorMap({
       iconAnchor: [7, 7],
     });
     L.marker(waypoints[0] as L.LatLngExpression, { icon: startIcon })
-      .bindTooltip("Départ")
+      .bindTooltip("Origin")
       .addTo(layer);
     L.marker(waypoints[waypoints.length - 1] as L.LatLngExpression, {
       icon: endIcon,
     })
-      .bindTooltip("Arrivée")
+      .bindTooltip("Destination")
       .addTo(layer);
 
     const stride = Math.max(1, Math.floor(waypoints.length / 8));
@@ -386,15 +408,12 @@ export default function CorridorMap({
       return;
     }
 
-    const feature = circle(
-      [zoneCenter.lon, zoneCenter.lat],
+    const geo = createCircleGeometry(
+      zoneCenter.lon,
+      zoneCenter.lat,
       zoneRadiusM / 1000,
-      {
-        steps: 64,
-        units: "kilometers",
-      },
+      64
     );
-    const geo = feature.geometry as RiskZoneGeometry;
     const latlngs = geo.coordinates[0].map(([lon, lat]) => [
       lat,
       lon,
@@ -507,7 +526,7 @@ export default function CorridorMap({
             onClick={() => setMapType(t)}
             className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${mapType === t ? "bg-blue-600 text-white shadow-sm" : "text-slate-700 hover:bg-slate-100"}`}
           >
-            {t === "roadmap" ? "Plan" : "Satellite"}
+            {t === "roadmap" ? "Map" : "Satellite"}
           </button>
         ))}
       </div>
@@ -523,7 +542,7 @@ export default function CorridorMap({
               <MapPin className="h-4 w-4 shrink-0 text-emerald-500" />
               <input
                 className="flex-1 bg-transparent text-sm outline-none placeholder:text-slate-400 text-slate-800"
-                placeholder="Ville d'origine…"
+                placeholder="Origin city…"
                 value={originQuery}
                 onChange={(e) => {
                   setOriginQuery(e.target.value);
@@ -562,7 +581,7 @@ export default function CorridorMap({
               <Flag className="h-4 w-4 shrink-0 text-red-500" />
               <input
                 className="flex-1 bg-transparent text-sm outline-none placeholder:text-slate-400 text-slate-800"
-                placeholder="Ville de destination…"
+                placeholder="Destination city…"
                 value={destQuery}
                 onChange={(e) => {
                   setDestQuery(e.target.value);
@@ -599,7 +618,7 @@ export default function CorridorMap({
           {routing && (
             <div className="flex items-center gap-2 rounded-xl bg-blue-600/90 px-3 py-2 text-xs font-semibold text-white shadow-lg backdrop-blur">
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              Calcul de l'itinéraire OSRM…
+              Calculating OSRM route…
             </div>
           )}
 
@@ -610,13 +629,12 @@ export default function CorridorMap({
               className="flex items-center gap-2 rounded-xl bg-white/95 px-3 py-2 text-xs font-semibold text-slate-600 shadow-lg ring-1 ring-black/10 backdrop-blur hover:bg-red-50 hover:text-red-600 transition"
             >
               <RotateCcw className="h-3.5 w-3.5" />
-              Réinitialiser le tracé
+              Reset route
             </button>
           )}
         </div>
       )}
 
-      {/* Zone draw mode controls */}
       {zoneDrawMode && (
         <div
           className="absolute top-3 right-3 z-[1000] flex flex-col gap-2 rounded-xl bg-white/97 p-3 shadow-lg ring-1 ring-black/10 backdrop-blur"
@@ -624,13 +642,13 @@ export default function CorridorMap({
         >
           <p className="text-xs font-semibold text-slate-700 leading-relaxed">
             {zoneCenter
-              ? "📍 Ajustez le rayon, ou re-cliquez sur la carte pour déplacer le centre."
-              : "🖱️ Cliquez sur la carte pour placer le centre de la zone à risque."}
+              ? "📍 Adjust radius, or click again on the map to relocate the center."
+              : "🖱️ Click on the map to place the risk zone center."}
           </p>
           {zoneCenter && (
             <>
               <div className="flex items-center justify-between text-xs font-semibold text-slate-600">
-                <span>Rayon</span>
+                <span>Radius</span>
                 <span className="text-purple-600">
                   {zoneRadiusM >= 1000
                     ? `${(zoneRadiusM / 1000).toFixed(1)} km`
@@ -654,7 +672,7 @@ export default function CorridorMap({
                 }}
                 className="flex items-center justify-center gap-1.5 rounded-lg bg-slate-100 px-2 py-1.5 text-xs font-semibold text-slate-600 hover:bg-red-50 hover:text-red-600 transition"
               >
-                <RotateCcw className="h-3 w-3" /> Réinitialiser
+                <RotateCcw className="h-3 w-3" /> Reset
               </button>
             </>
           )}

@@ -35,7 +35,7 @@ interface ConvoyLive {
   speed: number;
   temperature?: number;
   qodActive: boolean;
-  status: "EN_ROUTE" | "DEVIATION" | "LIVRE" | "ALERTE";
+  status: "EN_ROUTE" | "DEVIATION" | "DELIVERED" | "ALERT";
   corridor: string;
   simVerified: boolean;
 }
@@ -57,14 +57,14 @@ const INITIAL_CONVOYS: ConvoyLive[] = [
     driver: "Tarik Bennani",
     origin: "Casablanca",
     destination: "Marrakech",
-    type: "PHARMACEUTIQUE",
+    type: "PHARMACEUTICAL",
     criticality: "CRITICAL",
     progress: 42,
     speed: 84,
     temperature: 4.1,
     qodActive: true,
     status: "EN_ROUTE",
-    corridor: "A3 Corridor Sud",
+    corridor: "A3 Southern Corridor",
     simVerified: true,
   },
   {
@@ -73,14 +73,14 @@ const INITIAL_CONVOYS: ConvoyLive[] = [
     driver: "Hassan Mezouar",
     origin: "Rabat",
     destination: "Tanger Med",
-    type: "PRIMEURS FRIGORIFIQUES",
+    type: "REFRIGERATED PRODUCE",
     criticality: "HIGH",
     progress: 68,
     speed: 79,
     temperature: 5.8,
     qodActive: false,
     status: "EN_ROUTE",
-    corridor: "A1 Corridor Nord",
+    corridor: "A1 Northern Corridor",
     simVerified: true,
   },
   {
@@ -89,13 +89,13 @@ const INITIAL_CONVOYS: ConvoyLive[] = [
     driver: "Youssef Alaoui",
     origin: "Kenitra",
     destination: "Casablanca",
-    type: "COMPOSANTS AUTOMOBILES",
+    type: "AUTOMOTIVE COMPONENTS",
     criticality: "MEDIUM",
     progress: 88,
     speed: 91,
     qodActive: false,
     status: "EN_ROUTE",
-    corridor: "A1 Axe Central",
+    corridor: "A1 Central Axis",
     simVerified: true,
   },
   {
@@ -104,13 +104,13 @@ const INITIAL_CONVOYS: ConvoyLive[] = [
     driver: "Omar Tazi",
     origin: "Khouribga",
     destination: "Jorf Lasfar",
-    type: "FRET LOURD",
+    type: "HEAVY FREIGHT",
     criticality: "LOW",
     progress: 25,
     speed: 62,
     qodActive: false,
     status: "EN_ROUTE",
-    corridor: "R301 Axe Ouest",
+    corridor: "R301 Western Axis",
     simVerified: true,
   },
 ];
@@ -120,8 +120,8 @@ const INITIAL_EVENTS: AgentEvent[] = [
     id: "e1",
     ts: Date.now() - 35000,
     type: "QOD",
-    title: "Quality on Demand (QoD) activé",
-    description: "Session CAMARA QoD haute priorité allouée pour CARGO-PHARMA-01 sur l'A3. Latence réduite à 14ms.",
+    title: "Quality on Demand (QoD) Activated",
+    description: "High-priority CAMARA QoD session allocated for CARGO-PHARMA-01 on A3 corridor. Latency reduced to 14ms.",
     convoyRef: "CARGO-PHARMA-01",
     status: "AUTONOMOUS",
   },
@@ -129,8 +129,8 @@ const INITIAL_EVENTS: AgentEvent[] = [
     id: "e2",
     ts: Date.now() - 90000,
     type: "TRUST",
-    title: "Vérification SIM Swap & Device Validée",
-    description: "Contrôle CAMARA Number Verification exécuté : aucune permutation suspecte de carte SIM ou de terminal.",
+    title: "SIM Swap & Device Verification Confirmed",
+    description: "CAMARA Number Verification check completed: no suspicious SIM or terminal swap detected.",
     convoyRef: "CARGO-AGRI-04",
     status: "COMPLETED",
   },
@@ -151,7 +151,7 @@ export function DynamicCorridorCenter() {
     const interval = setInterval(() => {
       setConvoys((prev) =>
         prev.map((c) => {
-          if (c.progress >= 100) return { ...c, progress: 100, status: "LIVRE" };
+          if (c.progress >= 100) return { ...c, progress: 100, status: "DELIVERED" };
           const increment = (c.speed / 180) * simSpeed;
           const nextProgress = Math.min(100, Number((c.progress + increment).toFixed(1)));
           // slight fluctuation in speed and temp
@@ -162,7 +162,7 @@ export function DynamicCorridorCenter() {
             progress: nextProgress,
             speed: Math.round(jitterSpeed),
             temperature: jitterTemp,
-            status: nextProgress >= 100 ? "LIVRE" : c.status,
+            status: nextProgress >= 100 ? "DELIVERED" : c.status,
           };
         })
       );
@@ -192,50 +192,50 @@ export function DynamicCorridorCenter() {
         id: "evt_" + now,
         ts: now,
         type: "CONGESTION",
-        title: "Congestion Sévère sur A3 (PK-124)",
-        description: "Pic de charge réseau de 88% détecté via CAMARA Congestion API. Vitesse du convoi réduite de 30%.",
+        title: "Severe Congestion on A3 (PK-124)",
+        description: "88% network cell load spike detected via CAMARA Congestion API. Convoy speed reduced by 30%.",
         convoyRef: "CARGO-PHARMA-01",
         status: "AUTONOMOUS",
       };
       setEvents((prev) => [newEvent, ...prev]);
       setConvoys((prev) =>
-        prev.map((c) => (c.reference === "CARGO-PHARMA-01" ? { ...c, speed: 45, status: "ALERTE" } : c))
+        prev.map((c) => (c.reference === "CARGO-PHARMA-01" ? { ...c, speed: 45, status: "ALERT" } : c))
       );
     } else if (type === "SIM_ALERT") {
       const newEvent: AgentEvent = {
         id: "evt_" + now,
         ts: now,
         type: "TRUST",
-        title: "Alerte Sécurité Télécom — Suspicion SIM Swap",
-        description: "Changement récent d'IMSI détecté sur le tracker de CARGO-AGRI-04. Vérification d'identité requise.",
+        title: "Telecom Security Alert — Suspicious SIM Swap",
+        description: "Recent IMSI change detected on tracker for CARGO-AGRI-04. Operator identity check required.",
         convoyRef: "CARGO-AGRI-04",
         status: "PENDING_APPROVAL",
       };
       setEvents((prev) => [newEvent, ...prev]);
       setConvoys((prev) =>
-        prev.map((c) => (c.reference === "CARGO-AGRI-04" ? { ...c, simVerified: false, status: "ALERTE" } : c))
+        prev.map((c) => (c.reference === "CARGO-AGRI-04" ? { ...c, simVerified: false, status: "ALERT" } : c))
       );
     } else if (type === "TEMP_SPIKE") {
       const newEvent: AgentEvent = {
         id: "evt_" + now,
         ts: now,
         type: "CONGESTION",
-        title: "Anomalie Thermique Fret Critique (+7.8°C)",
-        description: "Seuil critique de température dépassé pour CARGO-PHARMA-01. Notification prioritaire envoyée au chauffeur.",
+        title: "Critical Cargo Temperature Spike (+7.8°C)",
+        description: "Critical temperature threshold exceeded for CARGO-PHARMA-01. Priority alert dispatched to driver.",
         convoyRef: "CARGO-PHARMA-01",
         status: "AUTONOMOUS",
       };
       setEvents((prev) => [newEvent, ...prev]);
       setConvoys((prev) =>
-        prev.map((c) => (c.reference === "CARGO-PHARMA-01" ? { ...c, temperature: 7.8, status: "ALERTE" } : c))
+        prev.map((c) => (c.reference === "CARGO-PHARMA-01" ? { ...c, temperature: 7.8, status: "ALERT" } : c))
       );
     } else if (type === "QOD_BOOST") {
       const newEvent: AgentEvent = {
         id: "evt_" + now,
         ts: now,
         type: "QOD",
-        title: "Boost QoD Telecom Accordé",
-        description: "Priorité absolue accordée sur l'antenne relais. Latence garantie < 15ms.",
+        title: "Telecom QoD Boost Granted",
+        description: "Absolute network priority assigned on cell tower. Guaranteed latency < 15ms.",
         convoyRef: selectedConvoy.reference,
         status: "COMPLETED",
       };
@@ -264,13 +264,13 @@ export function DynamicCorridorCenter() {
             <div className="flex items-center gap-2">
               <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/20 px-2.5 py-0.5 text-xs font-bold text-emerald-400 ring-1 ring-emerald-500/40">
                 <span className="h-2 w-2 rounded-full bg-emerald-400 animate-ping" />
-                Supervision Dynamique Live
+                Live Dynamic Supervision
               </span>
               <span className="font-mono text-xs text-slate-400">
                 CAMARA Open Gateway 2026
               </span>
             </div>
-            <h2 className="text-base font-bold text-white">Centre d'Opérations des Corridors</h2>
+            <h2 className="text-base font-bold text-white">Corridor Operations Center</h2>
           </div>
         </div>
 
@@ -285,7 +285,7 @@ export function DynamicCorridorCenter() {
               }`}
             >
               {isPlaying ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
-              {isPlaying ? "Pause" : "Reprendre"}
+              {isPlaying ? "Pause" : "Resume"}
             </button>
             <div className="flex items-center">
               {([1, 2, 5] as const).map((spd) => (
@@ -312,21 +312,21 @@ export function DynamicCorridorCenter() {
               onClick={() => injectIncident("CONGESTION")}
               className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-bold text-amber-400 hover:bg-amber-500/20 transition flex items-center gap-1"
             >
-              <AlertTriangle className="h-3.5 w-3.5" /> Simuler Congestion A3
+              <AlertTriangle className="h-3.5 w-3.5" /> Simulate A3 Congestion
             </button>
             <button
               type="button"
               onClick={() => injectIncident("SIM_ALERT")}
               className="rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-bold text-red-400 hover:bg-red-500/20 transition flex items-center gap-1"
             >
-              <ShieldAlert className="h-3.5 w-3.5" /> Simuler SIM Swap
+              <ShieldAlert className="h-3.5 w-3.5" /> Simulate SIM Swap
             </button>
             <button
               type="button"
               onClick={() => injectIncident("QOD_BOOST")}
               className="rounded-xl border border-blue-500/30 bg-blue-500/10 px-3 py-1.5 text-xs font-bold text-blue-400 hover:bg-blue-500/20 transition flex items-center gap-1"
             >
-              <Zap className="h-3.5 w-3.5" /> Déclencher QoD
+              <Zap className="h-3.5 w-3.5" /> Trigger QoD
             </button>
           </div>
         </div>
@@ -342,9 +342,9 @@ export function DynamicCorridorCenter() {
               <div>
                 <h3 className="text-sm font-bold text-white flex items-center gap-2">
                   <Truck className="h-4 w-4 text-blue-400" />
-                  Flotte en Transit Dynamique ({convoys.filter((c) => c.progress < 100).length} actifs)
+                  Fleet in Dynamic Transit ({convoys.filter((c) => c.progress < 100).length} active)
                 </h3>
-                <p className="text-xs text-slate-400">Cliquez sur un convoi pour inspecter sa télémétrie en direct</p>
+                <p className="text-xs text-slate-400">Click on a shipment to inspect live telemetry</p>
               </div>
               <span className="rounded-lg bg-slate-800 px-2.5 py-1 text-xs font-mono text-slate-300">
                 Auto-refresh: 1.5s
@@ -414,7 +414,7 @@ export function DynamicCorridorCenter() {
                       <span className="text-slate-500">{c.corridor}</span>
                       {c.qodActive && (
                         <span className="flex items-center gap-1 rounded bg-blue-600/30 px-1.5 py-0.5 text-[10px] font-bold text-blue-300">
-                          <Zap className="h-3 w-3" /> QoD ACTIF
+                          <Zap className="h-3 w-3" /> QoD ACTIVE
                         </span>
                       )}
                     </div>
@@ -430,9 +430,9 @@ export function DynamicCorridorCenter() {
               <div>
                 <h3 className="text-sm font-bold text-white flex items-center gap-2">
                   <Gauge className="h-4 w-4 text-cyan-400" />
-                  Télémétrie en Direct : <span className="text-blue-400">{selectedConvoy.reference}</span>
+                  Live Telemetry: <span className="text-blue-400">{selectedConvoy.reference}</span>
                 </h3>
-                <p className="text-xs text-slate-400">Corridor {selectedConvoy.corridor} · Fret {selectedConvoy.type}</p>
+                <p className="text-xs text-slate-400">Corridor {selectedConvoy.corridor} · Cargo {selectedConvoy.type}</p>
               </div>
 
               <div className="flex items-center gap-2">
@@ -440,10 +440,10 @@ export function DynamicCorridorCenter() {
                   selectedConvoy.simVerified ? "bg-emerald-500/20 text-emerald-400" : "bg-red-500/20 text-red-400"
                 }`}>
                   <ShieldCheck className="h-3.5 w-3.5" />
-                  {selectedConvoy.simVerified ? "SIM Authentifiée" : "Alerte SIM"}
+                  {selectedConvoy.simVerified ? "SIM Authenticated" : "SIM Alert"}
                 </span>
                 <span className="rounded-full bg-blue-600/20 px-2.5 py-1 text-xs font-bold text-blue-400">
-                  Qualité Signal: 94%
+                  Signal Quality: 94%
                 </span>
               </div>
             </div>
@@ -451,29 +451,29 @@ export function DynamicCorridorCenter() {
             {/* Gauge cards */}
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
               <div className="rounded-xl border border-slate-800/80 bg-[#0a101d] p-3.5 text-center">
-                <span className="text-[11px] font-semibold text-slate-400 uppercase">Vitesse Réelle</span>
+                <span className="text-[11px] font-semibold text-slate-400 uppercase">Current Speed</span>
                 <div className="mt-1 text-2xl font-black text-white">{selectedConvoy.speed} <span className="text-xs font-normal text-slate-400">km/h</span></div>
-                <div className="mt-1 text-[11px] text-emerald-400">Vitesse stable</div>
+                <div className="mt-1 text-[11px] text-emerald-400">Stable speed</div>
               </div>
 
               <div className="rounded-xl border border-slate-800/80 bg-[#0a101d] p-3.5 text-center">
-                <span className="text-[11px] font-semibold text-slate-400 uppercase">Progression</span>
+                <span className="text-[11px] font-semibold text-slate-400 uppercase">Progress</span>
                 <div className="mt-1 text-2xl font-black text-blue-400">{selectedConvoy.progress}%</div>
                 <div className="mt-1 text-[11px] text-slate-400">ETA ~{Math.round((100 - selectedConvoy.progress) * 1.8)} min</div>
               </div>
 
               <div className="rounded-xl border border-slate-800/80 bg-[#0a101d] p-3.5 text-center">
-                <span className="text-[11px] font-semibold text-slate-400 uppercase">Température Cargo</span>
+                <span className="text-[11px] font-semibold text-slate-400 uppercase">Cargo Temperature</span>
                 <div className={`mt-1 text-2xl font-black ${selectedConvoy.temperature && selectedConvoy.temperature > 7 ? "text-red-400" : "text-emerald-400"}`}>
-                  {selectedConvoy.temperature !== undefined ? `${selectedConvoy.temperature}°C` : "Ambiante"}
+                  {selectedConvoy.temperature !== undefined ? `${selectedConvoy.temperature}°C` : "Ambient"}
                 </div>
-                <div className="mt-1 text-[11px] text-slate-400">Consigne: +2°C à +8°C</div>
+                <div className="mt-1 text-[11px] text-slate-400">Setpoint: +2°C to +8°C</div>
               </div>
 
               <div className="rounded-xl border border-slate-800/80 bg-[#0a101d] p-3.5 text-center">
-                <span className="text-[11px] font-semibold text-slate-400 uppercase">Latence Réseau</span>
+                <span className="text-[11px] font-semibold text-slate-400 uppercase">Network Latency</span>
                 <div className="mt-1 text-2xl font-black text-cyan-400">{selectedConvoy.qodActive ? "14 ms" : "78 ms"}</div>
-                <div className="mt-1 text-[11px] text-blue-400">{selectedConvoy.qodActive ? "QoD Actif" : "Standard 4G/5G"}</div>
+                <div className="mt-1 text-[11px] text-blue-400">{selectedConvoy.qodActive ? "QoD Active" : "Standard 4G/5G"}</div>
               </div>
             </div>
           </div>
@@ -496,7 +496,7 @@ export function DynamicCorridorCenter() {
             {/* Congestion Gauge */}
             <div className="rounded-xl border border-slate-800/80 bg-[#0a101d] p-4">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-300">Indice de Congestion Réseau (A3)</span>
+                <span className="text-xs font-semibold text-slate-300">Network Congestion Index (A3)</span>
                 <span className={`text-sm font-extrabold ${congestionLevel > 70 ? "text-red-400" : "text-emerald-400"}`}>
                   {congestionLevel}%
                 </span>
@@ -513,8 +513,8 @@ export function DynamicCorridorCenter() {
               </div>
               <p className="mt-2 text-[11px] text-slate-400">
                 {congestionLevel > 70
-                  ? "Alerte : Forte affluence sur le corridor. Agent Raased en mode réacheminement préventif."
-                  : "Flux fluide. Aucune perturbation détectée sur les relais radio."}
+                  ? "Alert: High network cell density detected. Raased Agent operating in preventive reroute mode."
+                  : "Smooth traffic flow. No radio tower disruptions detected."}
               </p>
             </div>
 
@@ -524,19 +524,19 @@ export function DynamicCorridorCenter() {
                 <span className="text-slate-300 flex items-center gap-1.5">
                   <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" /> Number Verification
                 </span>
-                <span className="font-bold text-emerald-400">AUTHENTIFIÉ</span>
+                <span className="font-bold text-emerald-400">AUTHENTICATED</span>
               </div>
               <div className="flex items-center justify-between rounded-lg border border-slate-800 bg-[#0a101d] p-2.5">
                 <span className="text-slate-300 flex items-center gap-1.5">
                   <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" /> SIM Swap Check
                 </span>
-                <span className="font-bold text-emerald-400">SÉCURISÉ (0j)</span>
+                <span className="font-bold text-emerald-400">SECURED (0d)</span>
               </div>
               <div className="flex items-center justify-between rounded-lg border border-slate-800 bg-[#0a101d] p-2.5">
                 <span className="text-slate-300 flex items-center gap-1.5">
                   <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" /> Quality on Demand
                 </span>
-                <span className="font-bold text-blue-400">DISPONIBLE</span>
+                <span className="font-bold text-blue-400">AVAILABLE</span>
               </div>
             </div>
           </div>
@@ -546,7 +546,7 @@ export function DynamicCorridorCenter() {
             <div className="mb-4 flex items-center justify-between border-b border-slate-800 pb-3">
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
                 <Zap className="h-4 w-4 text-amber-400" />
-                Journal d'Action Agent IA
+                AI Agent Action Log
               </h3>
               <span className="text-[10px] font-mono text-slate-400">Append-only audit</span>
             </div>
@@ -562,7 +562,7 @@ export function DynamicCorridorCenter() {
                       {e.type} · {e.convoyRef}
                     </span>
                     <span className="text-[10px] text-slate-500 font-mono">
-                      {new Date(e.ts).toLocaleTimeString("fr-FR")}
+                      {new Date(e.ts).toLocaleTimeString("en-US")}
                     </span>
                   </div>
                   <h4 className="mt-1 font-bold text-white text-xs">{e.title}</h4>
@@ -579,10 +579,10 @@ export function DynamicCorridorCenter() {
                       }`}
                     >
                       {e.status === "AUTONOMOUS"
-                        ? "Action Autonome"
+                        ? "Autonomous Action"
                         : e.status === "PENDING_APPROVAL"
-                        ? "Validation Requise"
-                        : "Exécuté"}
+                        ? "Approval Required"
+                        : "Executed"}
                     </span>
 
                     {e.status === "PENDING_APPROVAL" && (
@@ -591,7 +591,7 @@ export function DynamicCorridorCenter() {
                         onClick={() => approveEvent(e.id)}
                         className="rounded-lg bg-blue-600 px-2.5 py-1 text-[11px] font-bold text-white hover:bg-blue-500 transition"
                       >
-                        Approuver
+                        Approve
                       </button>
                     )}
                   </div>

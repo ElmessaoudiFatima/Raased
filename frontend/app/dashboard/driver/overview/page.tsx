@@ -78,8 +78,8 @@ export default function DriverOverviewPage() {
   return (
     <div>
       <Topbar
-        title={`Bonjour, ${user?.first_name || "Chauffeur"}`}
-        subtitle="Tableau de bord de bordure et télématique convoi en temps réel"
+        title={`Hello, ${user?.first_name || "Driver"}`}
+        subtitle="Real-time convoy dashboard and telematics"
         onMenu={openMobileMenu}
       />
 
@@ -90,10 +90,10 @@ export default function DriverOverviewPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                  Mission en Cours
+                  Active Mission
                 </p>
                 <p className="mt-2 text-2xl font-extrabold text-white">
-                  {data.active_trips > 0 ? "1 Active" : "Aucune"}
+                  {data.active_trips > 0 ? "1 Active" : "None"}
                 </p>
               </div>
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-400 ring-1 ring-blue-500/20">
@@ -101,7 +101,7 @@ export default function DriverOverviewPage() {
               </div>
             </div>
             <p className="mt-2 text-xs text-slate-400">
-              {cargo ? `Réf : ${cargo.reference}` : "En attente d'attribution"}
+              {cargo ? `Ref: ${cargo.reference}` : "Awaiting assignment"}
             </p>
           </Card>
 
@@ -109,7 +109,7 @@ export default function DriverOverviewPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                  Livraisons Terminées
+                  Completed Deliveries
                 </p>
                 <p className="mt-2 text-2xl font-extrabold text-emerald-400">{data.delivered}</p>
               </div>
@@ -117,14 +117,14 @@ export default function DriverOverviewPage() {
                 <CheckCircle2 className="h-6 w-6" />
               </div>
             </div>
-            <p className="mt-2 text-xs text-slate-400">Historique des missions réussies</p>
+            <p className="mt-2 text-xs text-slate-400">History of successful missions</p>
           </Card>
 
           <Card className="p-5 border-slate-800 bg-[#0f172a]/90">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                  Alertes Actives
+                  Active Alerts
                 </p>
                 <p className="mt-2 text-2xl font-extrabold text-amber-400">{data.open_alerts}</p>
               </div>
@@ -132,14 +132,14 @@ export default function DriverOverviewPage() {
                 <AlertTriangle className="h-6 w-6" />
               </div>
             </div>
-            <p className="mt-2 text-xs text-slate-400">Surveillance route & fret</p>
+            <p className="mt-2 text-xs text-slate-400">Route & freight monitoring</p>
           </Card>
 
           <Card className="p-5 border-slate-800 bg-[#0f172a]/90">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                  Qualité Réseau (QoD)
+                  Network Quality (QoD)
                 </p>
                 <p className="mt-2 text-2xl font-extrabold text-cyan-400">Optimum</p>
               </div>
@@ -147,7 +147,7 @@ export default function DriverOverviewPage() {
                 <Zap className="h-6 w-6" />
               </div>
             </div>
-            <p className="mt-2 text-xs text-slate-400">5G Standalone CAMARA connectée</p>
+            <p className="mt-2 text-xs text-slate-400">5G Standalone CAMARA connected</p>
           </Card>
         </div>
 
@@ -167,7 +167,7 @@ export default function DriverOverviewPage() {
                     </span>
                   </div>
                   <p className="text-xs text-slate-400 mt-0.5">
-                    Véhicule assigné : <strong className="text-slate-200">{cargo.vehicle_registration || "Camion Flotte"}</strong>
+                    Assigned vehicle: <strong className="text-slate-200">{cargo.vehicle_registration || "Fleet Truck"}</strong>
                   </p>
                 </div>
               </div>
@@ -177,7 +177,7 @@ export default function DriverOverviewPage() {
                   href="/dashboard/driver/map"
                   className="inline-flex items-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-500 px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-blue-600/30 transition"
                 >
-                  <Navigation className="h-4 w-4" /> Ouvrir la navigation temps réel
+                  <Navigation className="h-4 w-4" /> Open real-time navigation
                 </Link>
               </div>
             </div>
@@ -186,10 +186,10 @@ export default function DriverOverviewPage() {
             <div className="space-y-3">
               <div className="flex items-center justify-between text-xs text-slate-300 font-semibold">
                 <span className="flex items-center gap-1.5 text-slate-200">
-                  <MapPin className="h-4 w-4 text-emerald-400" /> Départ : {cargo.origin}
+                  <MapPin className="h-4 w-4 text-emerald-400" /> Origin: {cargo.origin}
                 </span>
                 <span className="flex items-center gap-1.5 text-slate-200">
-                  <MapPin className="h-4 w-4 text-red-400" /> Destination : {cargo.destination}
+                  <MapPin className="h-4 w-4 text-red-400" /> Destination: {cargo.destination}
                 </span>
               </div>
 
@@ -201,8 +201,8 @@ export default function DriverOverviewPage() {
               </div>
 
               <div className="flex items-center justify-between text-xs text-slate-400">
-                <span>Progression : <strong className="text-white">{pos?.progress_pct || 42}%</strong></span>
-                <span>Temps estimé restant (ETA) : <strong className="text-cyan-400">{pos?.eta_minutes || 65} min</strong></span>
+                <span>Progress: <strong className="text-white">{pos?.progress_pct || 42}%</strong></span>
+                <span>Estimated time remaining (ETA): <strong className="text-cyan-400">{pos?.eta_minutes || 65} min</strong></span>
               </div>
             </div>
 
@@ -211,7 +211,7 @@ export default function DriverOverviewPage() {
               <div className="rounded-xl border border-slate-800/80 bg-[#0a101d] p-4 flex items-center gap-3">
                 <Gauge className="h-8 w-8 text-blue-400 shrink-0" />
                 <div>
-                  <p className="text-[11px] text-slate-400 uppercase font-semibold">Vitesse Estimée</p>
+                  <p className="text-[11px] text-slate-400 uppercase font-semibold">Estimated Speed</p>
                   <p className="text-xl font-mono font-bold text-white">82 km/h</p>
                 </div>
               </div>
@@ -219,7 +219,7 @@ export default function DriverOverviewPage() {
               <div className="rounded-xl border border-slate-800/80 bg-[#0a101d] p-4 flex items-center gap-3">
                 <Thermometer className="h-8 w-8 text-cyan-400 shrink-0" />
                 <div>
-                  <p className="text-[11px] text-slate-400 uppercase font-semibold">Consigne Température</p>
+                  <p className="text-[11px] text-slate-400 uppercase font-semibold">Temperature Setting</p>
                   <p className="text-xl font-mono font-bold text-emerald-400">+4.2 °C</p>
                 </div>
               </div>
@@ -227,9 +227,9 @@ export default function DriverOverviewPage() {
               <div className="rounded-xl border border-slate-800/80 bg-[#0a101d] p-4 flex items-center gap-3">
                 <Clock className="h-8 w-8 text-purple-400 shrink-0" />
                 <div>
-                  <p className="text-[11px] text-slate-400 uppercase font-semibold">Deadline Contractuelle</p>
+                  <p className="text-[11px] text-slate-400 uppercase font-semibold">Contractual Deadline</p>
                   <p className="text-sm font-bold text-slate-200">
-                    {cargo.deadline ? new Date(cargo.deadline).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) : "Ce soir"}
+                    {cargo.deadline ? new Date(cargo.deadline).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }) : "Tonight"}
                   </p>
                 </div>
               </div>
@@ -239,8 +239,8 @@ export default function DriverOverviewPage() {
           <Card className="p-8 border-slate-800 bg-[#0f172a]">
             <EmptyState
               icon={<Truck className="h-10 w-10 text-slate-500" />}
-              title="Aucune mission en cours"
-              description="Votre manager d'exploitation ne vous a pas encore assigné de nouveau convoi pour aujourd'hui."
+              title="No active mission"
+              description="Your operations manager has not yet assigned a new convoy to you for today."
             />
           </Card>
         )}
@@ -257,9 +257,9 @@ export default function DriverOverviewPage() {
               </div>
               <div>
                 <h4 className="font-semibold text-white group-hover:text-blue-400 transition">
-                  Carte Google Maps en Direct
+                  Live Map
                 </h4>
-                <p className="text-xs text-slate-400">Suivre votre véhicule sur les corridors routiers</p>
+                <p className="text-xs text-slate-400">Track your vehicle on road corridors</p>
               </div>
             </div>
             <ArrowRight className="h-4 w-4 text-slate-500 group-hover:translate-x-1 group-hover:text-blue-400 transition" />
@@ -275,9 +275,9 @@ export default function DriverOverviewPage() {
               </div>
               <div>
                 <h4 className="font-semibold text-white group-hover:text-amber-400 transition">
-                  Consignes & Décisions Agent IA
+                  Instructions & AI Agent Decisions
                 </h4>
-                <p className="text-xs text-slate-400">Alertes de trafic et propositions de déviations</p>
+                <p className="text-xs text-slate-400">Traffic alerts and diversion proposals</p>
               </div>
             </div>
             <ArrowRight className="h-4 w-4 text-slate-500 group-hover:translate-x-1 group-hover:text-amber-400 transition" />

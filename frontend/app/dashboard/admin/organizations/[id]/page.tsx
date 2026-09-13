@@ -66,7 +66,7 @@ export default function OrgDetailPage() {
   const load = useCallback(() => {
     get<{ organization: OrgDetail }>(`/admin/organizations/${id}`)
       .then((d) => setOrg(d.organization))
-      .catch(() => notify("Impossible de charger la demande.", "error"))
+      .catch(() => notify("Unable to load the request.", "error"))
       .finally(() => setLoading(false));
   }, [id, notify]);
 
@@ -78,10 +78,10 @@ export default function OrgDetailPage() {
     setBusy(true);
     try {
       await patch(`/admin/organizations/${id}/approve`);
-      notify("Demande approuvée.");
+      notify("Request approved.");
       load();
     } catch (err) {
-      notify(err instanceof Error ? err.message : "Échec de l'approbation.", "error");
+      notify(err instanceof Error ? err.message : "Approval failed.", "error");
     } finally {
       setBusy(false);
     }
@@ -91,11 +91,11 @@ export default function OrgDetailPage() {
     setBusy(true);
     try {
       await patch(`/admin/organizations/${id}/reject`, { rejection_reason: reason });
-      notify("Demande rejetée.");
+      notify("Request rejected.");
       setRejectOpen(false);
       load();
     } catch (err) {
-      notify(err instanceof Error ? err.message : "Échec du rejet.", "error");
+      notify(err instanceof Error ? err.message : "Rejection failed.", "error");
     } finally {
       setBusy(false);
     }
@@ -104,7 +104,7 @@ export default function OrgDetailPage() {
   if (loading) {
     return (
       <div>
-        <Topbar title="Demande d'entreprise" onMenu={openMobileMenu} />
+        <Topbar title="Company Request" onMenu={openMobileMenu} />
         <div className="flex h-40 items-center justify-center p-6">
           <Spinner className="h-7 w-7 text-raased-teal" />
         </div>
@@ -115,9 +115,9 @@ export default function OrgDetailPage() {
   if (!org) {
     return (
       <div>
-        <Topbar title="Demande introuvable" onMenu={openMobileMenu} />
+        <Topbar title="Request not found" onMenu={openMobileMenu} />
         <div className="p-6">
-          <p className="text-sm text-slate-500">Cette demande n'existe plus.</p>
+          <p className="text-sm text-slate-500">This request no longer exists.</p>
         </div>
       </div>
     );
@@ -125,13 +125,13 @@ export default function OrgDetailPage() {
 
   return (
     <div>
-      <Topbar title={org.name} subtitle="Détail de la demande d'entreprise" onMenu={openMobileMenu} />
+      <Topbar title={org.name} subtitle="Company request details" onMenu={openMobileMenu} />
       <div className="p-6">
         <button
           onClick={() => router.push("/dashboard/admin/organizations")}
           className="mb-5 inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-raased-teal"
         >
-          <ArrowLeft className="h-4 w-4" /> Retour aux demandes
+          <ArrowLeft className="h-4 w-4" /> Back to requests
         </button>
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -144,32 +144,32 @@ export default function OrgDetailPage() {
                   </div>
                   <div>
                     <h3 className="text-xl font-bold text-raased-navy">{org.name}</h3>
-                    <p className="text-sm text-slate-500">ICE / RC : {org.legal_id}</p>
+                    <p className="text-sm text-slate-500">ICE / RC: {org.legal_id}</p>
                   </div>
                 </div>
                 <Badge value={org.status} />
               </div>
 
               <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <InfoItem icon={<MapPin className="h-4 w-4" />} label="Localisation" value={`${org.city}, ${org.country}`} />
-                <InfoItem icon={<Phone className="h-4 w-4" />} label="Téléphone" value={org.phone} />
-                <InfoItem icon={<Mail className="h-4 w-4" />} label="E-mail de contact" value={org.email} />
-                <InfoItem icon={<Building2 className="h-4 w-4" />} label="Site web" value={org.website || "—"} />
+                <InfoItem icon={<MapPin className="h-4 w-4" />} label="Location" value={`${org.city}, ${org.country}`} />
+                <InfoItem icon={<Phone className="h-4 w-4" />} label="Phone" value={org.phone} />
+                <InfoItem icon={<Mail className="h-4 w-4" />} label="Contact Email" value={org.email} />
+                <InfoItem icon={<Building2 className="h-4 w-4" />} label="Website" value={org.website || "—"} />
               </div>
               <div className="mt-4 border-t border-slate-100 pt-4">
-                <p className="label">Adresse</p>
+                <p className="label">Address</p>
                 <p className="text-sm text-slate-600">{org.address || "—"}</p>
               </div>
 
               {org.rejection_reason && (
                 <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-                  <b>Motif du rejet :</b> {org.rejection_reason}
+                  <b>Rejection Reason:</b> {org.rejection_reason}
                 </div>
               )}
             </Card>
 
             <Card className="p-6">
-              <h3 className="mb-4 font-bold text-raased-navy">Managers de l'entreprise</h3>
+              <h3 className="mb-4 font-bold text-raased-navy">Company Managers</h3>
               <div className="space-y-3">
                 {org.managers.map((m) => (
                   <div key={m.id} className="flex items-center justify-between rounded-xl border border-slate-100 p-4">
@@ -186,25 +186,25 @@ export default function OrgDetailPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       {m.email_verified ? (
-                        <span className="badge bg-emerald-100 text-emerald-700">E-mail vérifié</span>
+                        <span className="badge bg-emerald-100 text-emerald-700">Verified Email</span>
                       ) : (
                         <Badge value="INVITED" />
                       )}
                     </div>
                   </div>
                 ))}
-                {org.managers.length === 0 && <p className="text-sm text-slate-400">Aucun manager.</p>}
+                {org.managers.length === 0 && <p className="text-sm text-slate-400">No managers.</p>}
               </div>
             </Card>
 
             {org.documents.length > 0 && (
               <Card className="p-6">
-                <h3 className="mb-4 font-bold text-raased-navy">Documents justificatifs</h3>
+                <h3 className="mb-4 font-bold text-raased-navy">Supporting Documents</h3>
                 <div className="space-y-3">
                   {org.documents.map((d) => (
                     <button
                       key={d.id}
-                      onClick={() => openPdfWithAuth(d.download_url).catch(() => notify("Impossible d'ouvrir le document.", "error"))}
+                      onClick={() => openPdfWithAuth(d.download_url).catch(() => notify("Unable to open the document.", "error"))}
                       className="flex w-full items-center justify-between rounded-xl border border-slate-100 p-4 text-left transition hover:border-raased-teal"
                     >
                       <div className="flex items-center gap-3">
@@ -212,11 +212,11 @@ export default function OrgDetailPage() {
                         <div>
                           <p className="text-sm font-semibold text-slate-700">
                             {d.document_type === "COMPANY_CERTIFICATE"
-                              ? "Certificat de l'entreprise"
-                              : "Pièce d'identité du responsable"}
+                              ? "Company Certificate"
+                              : "Manager ID"}
                           </p>
                           <p className="text-xs text-slate-400">
-                            {d.uploaded_at ? new Date(d.uploaded_at).toLocaleString("fr-FR") : ""}
+                            {d.uploaded_at ? new Date(d.uploaded_at).toLocaleString("en-US") : ""}
                           </p>
                         </div>
                       </div>
@@ -231,46 +231,46 @@ export default function OrgDetailPage() {
           <div className="space-y-4">
             {org.status === "PENDING" && (
               <Card className="p-5">
-                <h3 className="mb-3 font-bold text-raased-navy">Décision</h3>
+                <h3 className="mb-3 font-bold text-raased-navy">Decision</h3>
                 <p className="mb-4 text-sm text-slate-500">
-                  Validez la demande pour activer l'accès de l'entreprise et de ses managers.
+                  Approve the request to enable access for the company and its managers.
                 </p>
                 <Button onClick={approve} loading={busy} className="w-full py-3">
-                  <Check className="h-4 w-4" /> Approuver la demande
+                  <Check className="h-4 w-4" /> Approve request
                 </Button>
                 <Button
                   variant="danger"
                   onClick={() => setRejectOpen(true)}
                   className="mt-3 w-full py-3"
                 >
-                  <X className="h-4 w-4" /> Rejeter la demande
+                  <X className="h-4 w-4" /> Reject request
                 </Button>
               </Card>
             )}
             {org.status !== "PENDING" && (
               <Card className="p-5">
                 <p className="text-sm text-slate-500">
-                  Cette demande a été {org.status === "APPROVED" ? "approuvée" : "rejetée"}.
+                  This request was {org.status === "APPROVED" ? "approved" : "rejected"}.
                 </p>
               </Card>
             )}
           </div>
         </div>
 
-        <Modal open={rejectOpen} onClose={() => setRejectOpen(false)} title="Rejeter la demande">
+        <Modal open={rejectOpen} onClose={() => setRejectOpen(false)} title="Reject the request">
           <div className="space-y-4">
             <Textarea
-              label="Motif du rejet"
+              label="Rejection Reason"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder="Documents insuffisants…"
+              placeholder="Insufficient documents..."
             />
             <div className="flex justify-end gap-3">
               <Button variant="outline" onClick={() => setRejectOpen(false)}>
-                Annuler
+                Cancel
               </Button>
               <Button variant="danger" loading={busy} onClick={reject}>
-                Confirmer le rejet
+                Confirm rejection
               </Button>
             </div>
           </div>

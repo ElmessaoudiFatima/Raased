@@ -68,7 +68,7 @@ async def create_cargo(
     )
     corridor = corridor_res.scalar_one_or_none()
     if corridor is None:
-        raise ValueError("Corridor introuvable ou non accessible pour cette organisation.")
+        raise ValueError("Corridor not found or not accessible for this organization.")
 
     driver_user = None
     if payload.driver_id:
@@ -80,7 +80,7 @@ async def create_cargo(
         )
         driver_user = driver_res.scalar_one_or_none()
         if not driver_user:
-            raise ValueError("Chauffeur introuvable ou non associé à cette organisation.")
+            raise ValueError("Driver not found or not associated with this organization.")
 
     reference = await _generate_reference(db, organization_id)
 
@@ -166,7 +166,7 @@ async def update_cargo(
             )
         )
         if not corridor_res.scalar_one_or_none():
-            raise ValueError("Corridor introuvable ou non accessible pour cette organisation.")
+            raise ValueError("Corridor not found or not accessible for this organization.")
         cargo.corridor_id = payload.corridor_id
 
     if "type" in fields_set and payload.type is not None:
@@ -190,7 +190,7 @@ async def update_cargo(
             )
             driver_user = driver_res.scalar_one_or_none()
             if not driver_user:
-                raise ValueError("Chauffeur introuvable ou non associé à cette organisation.")
+                raise ValueError("Driver not found or not associated with this organization.")
             cargo.driver_id = payload.driver_id
             cargo.driver = driver_user
 
@@ -225,7 +225,7 @@ async def update_cargo(
 
                 tracker = await tracker_service.get_tracker(db, payload.tracker_id, cargo.organization_id)
                 if not tracker:
-                    raise ValueError("Tracker / véhicule introuvable.")
+                    raise ValueError("Tracker / vehicle not found.")
                 await tracker_service.assign_tracker_to_cargo(db, tracker, cargo.id)
 
     db.add(cargo)

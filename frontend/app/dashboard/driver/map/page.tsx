@@ -78,8 +78,8 @@ export default function DriverMapPage() {
   return (
     <div className="flex h-screen flex-col">
       <Topbar
-        title="Navigation & Carte Convoi"
-        subtitle="Vue Google Maps temps réel de votre véhicule sur le corridor"
+        title="Navigation & Convoy Map"
+        subtitle="Real-time map view of your vehicle along the corridor"
         onMenu={openMobileMenu}
       />
 
@@ -114,13 +114,13 @@ export default function DriverMapPage() {
                 <MapPin className="h-3.5 w-3.5 text-emerald-400" /> {trip.cargo.origin} → {trip.cargo.destination}
               </p>
               <p className="text-slate-400">
-                Véhicule : <strong className="text-slate-200">{trip.cargo.vehicle_registration || "Camion"}</strong>
+                Vehicle : <strong className="text-slate-200">{trip.cargo.vehicle_registration || "Truck"}</strong>
               </p>
             </div>
 
             {trip.position && (
               <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-xs">
-                <span className="text-slate-400">Progression : <strong className="text-white">{trip.position.progress_pct}%</strong></span>
+                <span className="text-slate-400">Progress : <strong className="text-white">{trip.position.progress_pct}%</strong></span>
                 <span className="text-cyan-400 font-semibold">ETA : ~{trip.position.eta_minutes} min</span>
               </div>
             )}

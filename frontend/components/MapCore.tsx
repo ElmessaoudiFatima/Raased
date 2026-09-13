@@ -158,9 +158,9 @@ export default function MapCore({
       })
         .bindPopup(
           `<div style="font-family:inherit;min-width:200px;padding:4px">
-            <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#ef4444;margin-bottom:2px">Zone à risque — ${z.risk_level}</div>
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#ef4444;margin-bottom:2px">Risk Zone — ${z.risk_level}</div>
             <p style="font-weight:700;font-size:14px;color:#0f172a;margin:0 0 4px">${z.name}</p>
-            <p style="margin:0;font-size:12px;color:#64748b">Type : ${z.type.toLowerCase()} · Corridor sous vigilance</p>
+            <p style="margin:0;font-size:12px;color:#64748b">Type: ${z.type.toLowerCase()} · High-vigilance corridor</p>
           </div>`
         )
         .addTo(layer);
@@ -177,7 +177,7 @@ export default function MapCore({
       })
         .bindPopup(
           `<div style="font-family:inherit;min-width:180px;padding:4px">
-            <div style="font-size:11px;font-weight:700;color:#2563eb;text-transform:uppercase">Corridor Logistique</div>
+            <div style="font-size:11px;font-weight:700;color:#2563eb;text-transform:uppercase">Logistics Corridor</div>
             <p style="font-weight:700;font-size:13px;color:#0f172a;margin:2px 0 0">${c.name}</p>
           </div>`
         )
@@ -206,26 +206,26 @@ export default function MapCore({
                 ${t.criticality}
               </span>
               <span style="font-size:11px;font-weight:600;color:#64748b">
-                ${t.vehicle_registration || "Camion"}
+                ${t.vehicle_registration || "Truck"}
               </span>
             </div>
             <p style="font-weight:800;font-size:15px;color:#0f172a;margin:0 0 2px">
-              ${t.reference || "Convoi"}
+              ${t.reference || "Shipment"}
             </p>
             <p style="font-size:12px;color:#475569;margin:0 0 8px">
               📍 ${t.origin} ➔ ${t.destination}
             </p>
             <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:8px;font-size:12px">
               <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-                <span style="color:#64748b">Chauffeur:</span>
-                <span style="font-weight:600;color:#1e293b">${t.driver || "Non assigné"}</span>
+                <span style="color:#64748b">Driver:</span>
+                <span style="font-weight:600;color:#1e293b">${t.driver || "Unassigned"}</span>
               </div>
               <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-                <span style="color:#64748b">Progression:</span>
+                <span style="color:#64748b">Progress:</span>
                 <span style="font-weight:700;color:#2563eb">${t.position.progress_pct}%</span>
               </div>
               <div style="display:flex;justify-content:space-between">
-                <span style="color:#64748b">ETA estimé:</span>
+                <span style="color:#64748b">Estimated ETA:</span>
                 <span style="font-weight:700;color:#10b981">~${t.position.eta_minutes} min</span>
               </div>
             </div>
@@ -276,7 +276,7 @@ export default function MapCore({
               : "text-slate-300 hover:bg-slate-800"
           }`}
         >
-          Plan
+          Map
         </button>
         <button
           type="button"
@@ -298,7 +298,7 @@ export default function MapCore({
               : "text-slate-300 hover:bg-slate-800"
           }`}
         >
-          Relief
+          Terrain
         </button>
         <button
           type="button"
@@ -309,7 +309,7 @@ export default function MapCore({
               : "text-slate-300 hover:bg-slate-800"
           }`}
         >
-          Sombre
+          Dark
         </button>
       </div>
 
@@ -325,7 +325,7 @@ export default function MapCore({
           }`}
         >
           <Radio className="h-3.5 w-3.5" />
-          {showTraffic ? "Trafic & Corridors ON" : "Trafic OFF"}
+          {showTraffic ? "Traffic & Corridors ON" : "Traffic OFF"}
         </button>
       </div>
 
@@ -334,7 +334,7 @@ export default function MapCore({
         <button
           type="button"
           onClick={handleRecenter}
-          title="Centrer sur la flotte"
+          title="Center on fleet"
           className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/95 text-slate-700 shadow-lg ring-1 ring-black/10 hover:bg-slate-50 transition active:scale-95"
         >
           <Navigation className="h-4 w-4 text-blue-600" />

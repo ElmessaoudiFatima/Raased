@@ -68,12 +68,12 @@ export default function ProfilePage() {
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      setError("Veuillez sélectionner un fichier image valide (JPG, PNG, WebP).");
+      setError("Please select a valid image file (JPG, PNG, WebP).");
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      setError("L'image ne doit pas dépasser 5 Mo.");
+      setError("Image must not exceed 5 MB.");
       return;
     }
 
@@ -81,7 +81,7 @@ export default function ProfilePage() {
     reader.onload = () => {
       const base64 = reader.result as string;
       setForm((f) => ({ ...f, avatar_url: base64 }));
-      setSuccess("Photo sélectionnée ! N'oubliez pas d'enregistrer.");
+      setSuccess("Photo selected! Don't forget to save.");
     };
     reader.readAsDataURL(file);
   };
@@ -97,10 +97,10 @@ export default function ProfilePage() {
       setUser(data.user);
       const token = getToken() || "";
       setSession(token, data.user);
-      setSuccess("Profil et photo mis à jour avec succès !");
+      setSuccess("Profile and photo updated successfully!");
       setTimeout(() => setSuccess(""), 4000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erreur lors de la mise à jour.");
+      setError(err instanceof Error ? err.message : "Error during update.");
     } finally {
       setSaving(false);
     }
@@ -116,10 +116,10 @@ export default function ProfilePage() {
 
   const roleLabel =
     user?.role === "ADMIN"
-      ? "Super Administrateur"
+      ? "Super Administrator"
       : user?.role === "MANAGER"
-      ? "Manager Flotte & Opérations"
-      : "Chauffeur Routier";
+      ? "Fleet & Operations Manager"
+      : "Truck Driver";
 
   const roleBadgeColor =
     user?.role === "ADMIN"
@@ -140,7 +140,7 @@ export default function ProfilePage() {
             {form.avatar_url ? (
               <img
                 src={form.avatar_url}
-                alt="Photo de profil"
+                alt="Profile picture"
                 className="h-24 w-24 sm:h-28 sm:w-28 rounded-2xl object-cover ring-4 ring-blue-500/30 shadow-2xl transition duration-200 group-hover:brightness-75"
               />
             ) : (
@@ -153,10 +153,10 @@ export default function ProfilePage() {
               type="button"
               onClick={() => fileInputRef.current?.click()}
               className="absolute inset-0 flex flex-col items-center justify-center gap-1 rounded-2xl bg-black/60 text-white opacity-0 transition duration-200 group-hover:opacity-100"
-              title="Changer la photo"
+              title="Change photo"
             >
               <Camera className="h-6 w-6 text-blue-400" />
-              <span className="text-[11px] font-semibold">Modifier</span>
+              <span className="text-[11px] font-semibold">Edit</span>
             </button>
             <input
               ref={fileInputRef}
@@ -204,7 +204,7 @@ export default function ProfilePage() {
             onClick={() => fileInputRef.current?.click()}
             className="text-xs shrink-0 flex items-center gap-1.5"
           >
-            <Upload className="h-3.5 w-3.5" /> Changer la photo
+            <Upload className="h-3.5 w-3.5" /> Change photo
           </Button>
         </div>
       </div>
@@ -227,36 +227,36 @@ export default function ProfilePage() {
       <form onSubmit={handleSave} className="rounded-2xl border border-slate-800 bg-[#0f172a] p-6 sm:p-8 space-y-6 shadow-lg">
         <div>
           <h3 className="text-lg font-bold text-white flex items-center gap-2">
-            <UserIcon className="h-5 w-5 text-blue-400" /> Informations Personnelles
+            <UserIcon className="h-5 w-5 text-blue-400" /> Personal Information
           </h3>
           <p className="text-xs text-slate-400 mt-0.5">
-            Gérez votre nom, votre numéro de téléphone et votre fonction au sein de l'organisation.
+            Manage your name, phone number and your role within the organization.
           </p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Input
-            label="Prénom"
+            label="First Name"
             value={form.first_name}
             onChange={(e) => setForm({ ...form, first_name: e.target.value })}
             required
           />
           <Input
-            label="Nom"
+            label="Last Name"
             value={form.last_name}
             onChange={(e) => setForm({ ...form, last_name: e.target.value })}
             required
           />
           <Input
-            label="Numéro de téléphone"
+            label="Phone Number"
             value={form.phone}
             placeholder="+212 600 00 00 00"
             onChange={(e) => setForm({ ...form, phone: e.target.value })}
           />
           <Input
-            label="Fonction / Poste"
+            label="Role / Title"
             value={form.job_title}
-            placeholder="Directeur Logistique, Chauffeur..."
+            placeholder="Logistics Director, Driver..."
             onChange={(e) => setForm({ ...form, job_title: e.target.value })}
           />
         </div>
@@ -264,26 +264,26 @@ export default function ProfilePage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-800/80">
           <div>
             <label className="block text-xs font-semibold text-slate-400 mb-1">
-              Adresse e-mail (Identifiant de connexion)
+              Email Address (Login Identifier)
             </label>
             <input
               disabled
               value={user?.email || ""}
               className="w-full rounded-xl border border-slate-800 bg-slate-900/60 px-3.5 py-2.5 text-sm text-slate-400 cursor-not-allowed"
             />
-            <p className="text-[11px] text-slate-500 mt-1">L'adresse e-mail est liée à l'authentification et non modifiable.</p>
+            <p className="text-[11px] text-slate-500 mt-1">Email address is linked to authentication and cannot be changed.</p>
           </div>
 
           <div>
             <label className="block text-xs font-semibold text-slate-400 mb-1">
-              Rôle sur la plateforme
+              Platform Role
             </label>
             <input
               disabled
               value={roleLabel}
               className="w-full rounded-xl border border-slate-800 bg-slate-900/60 px-3.5 py-2.5 text-sm text-slate-400 cursor-not-allowed"
             />
-            <p className="text-[11px] text-slate-500 mt-1">Attribué par l'administrateur Raased.</p>
+            <p className="text-[11px] text-slate-500 mt-1">Assigned by the Raased administrator.</p>
           </div>
         </div>
 
@@ -294,7 +294,7 @@ export default function ProfilePage() {
             loading={saving}
             className="px-6 py-2.5 flex items-center gap-2"
           >
-            <Save className="h-4 w-4" /> Enregistrer les modifications
+            <Save className="h-4 w-4" /> Save changes
           </Button>
         </div>
       </form>

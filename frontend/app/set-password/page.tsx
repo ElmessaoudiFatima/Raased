@@ -79,7 +79,7 @@ function Inner() {
       });
       setState("done");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Impossible d'activer le compte.");
+      setError(err instanceof Error ? err.message : "Failed to activate account.");
     } finally {
       setLoading(false);
     }
@@ -90,7 +90,7 @@ function Inner() {
       {state === "loading" && (
         <div className="flex flex-col items-center gap-4 py-16 text-center">
           <Spinner className="h-8 w-8 text-blue-500" />
-          <p className="text-sm text-slate-400">Vérification de votre invitation…</p>
+          <p className="text-sm text-slate-400">Verifying your invitation…</p>
         </div>
       )}
 
@@ -99,13 +99,13 @@ function Inner() {
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-red-500/20 text-red-400 ring-1 ring-red-500/30">
             <AlertCircle className="h-6 w-6" />
           </div>
-          <h2 className="mt-4 text-xl font-bold text-white">Invitation invalide ou expirée</h2>
+          <h2 className="mt-4 text-xl font-bold text-white">Invalid or expired invitation</h2>
           <p className="mt-2 text-xs text-slate-400">
-            Ce lien est invalide, expiré (48h) ou a déjà été utilisé. Votre manager peut vous renvoyer une nouvelle invitation.
+            This invitation link is invalid, expired (48h) or has already been used. Your manager can send you a new invitation.
           </p>
           <Link href="/login" className="mt-6 inline-block w-full">
             <Button variant="figma" className="w-full py-3">
-              Retour à la connexion
+              Back to login
             </Button>
           </Link>
         </div>
@@ -116,13 +116,13 @@ function Inner() {
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500/20 text-emerald-400 ring-1 ring-emerald-500/30">
             <CheckCircle2 className="h-8 w-8" />
           </div>
-          <h2 className="mt-4 text-xl font-bold text-white">Compte activé avec succès !</h2>
+          <h2 className="mt-4 text-xl font-bold text-white">Account activated successfully!</h2>
           <p className="mt-2 text-xs text-slate-400">
-            Votre mot de passe a été configuré. Vous pouvez désormais vous connecter à la plateforme Raased.
+            Your password has been configured. You can now sign in to the Raased platform.
           </p>
           <Link href="/login" className="mt-6 inline-block w-full">
             <Button variant="figma" className="w-full py-3">
-              Se connecter <ArrowRight className="h-4 w-4 ml-1" />
+              Sign In <ArrowRight className="h-4 w-4 ml-1" />
             </Button>
           </Link>
         </div>
@@ -137,13 +137,13 @@ function Inner() {
               </div>
               <div className="text-xs text-slate-300">
                 <p>
-                  Bonjour <b className="text-white">{info.first_name} {info.last_name}</b>,
+                  Hello <b className="text-white">{info.first_name} {info.last_name}</b>,
                 </p>
                 <p className="mt-1 text-slate-300">
                   {info.role === "MANAGER" ? (
-                    <>Vous êtes invité(e) par <b className="text-blue-400">{info.organization_name || "votre entreprise"}</b> en tant que <b>Manager</b>.</>
+                    <>You are invited by <b className="text-blue-400">{info.organization_name || "your company"}</b> as a <b>Manager</b>.</>
                   ) : (
-                    <>Vous êtes invité(e) par <b className="text-blue-400">{info.organization_name || "votre entreprise"}</b> en tant que <b>Chauffeur</b>.</>
+                    <>You are invited by <b className="text-blue-400">{info.organization_name || "your company"}</b> as a <b>Driver</b>.</>
                   )}
                 </p>
                 <p className="mt-1 font-mono text-[11px] text-slate-400">{info.email}</p>
@@ -154,7 +154,7 @@ function Inner() {
           <form onSubmit={submit} className="mt-6 space-y-4">
             <div>
               <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-slate-300">
-                Créer votre mot de passe
+                Create your password
               </label>
               <div className="relative">
                 <KeyRound className="pointer-events-none absolute left-3.5 top-3 h-4 w-4 text-slate-500" />
@@ -162,7 +162,7 @@ function Inner() {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="8 caractères minimum"
+                  placeholder="8 characters minimum"
                   minLength={8}
                   required
                   className="w-full rounded-xl border border-slate-700/80 bg-[#0a101d] py-2.5 pl-10 pr-3.5 text-sm text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
@@ -172,13 +172,13 @@ function Inner() {
 
             <div>
               <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-slate-300">
-                Confirmer le mot de passe
+                Confirm password
               </label>
               <input
                 type="password"
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
-                placeholder="Répéter le mot de passe"
+                placeholder="Repeat password"
                 minLength={8}
                 required
                 className="w-full rounded-xl border border-slate-700/80 bg-[#0a101d] px-3.5 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
@@ -198,7 +198,7 @@ function Inner() {
               disabled={password.length < 8 || password !== confirm}
               className="w-full py-3 text-sm font-semibold shadow-lg shadow-blue-600/30"
             >
-              Activer mon compte & Accéder <ArrowRight className="h-4 w-4 ml-1" />
+              Activate account & Continue <ArrowRight className="h-4 w-4 ml-1" />
             </Button>
           </form>
         </>

@@ -66,7 +66,7 @@ export default function DriversPage() {
     setLoading(true);
     get<{ drivers: Driver[] }>("/managers/drivers")
       .then((d) => setDrivers(d.drivers))
-      .catch(() => notify("Impossible de charger les chauffeurs.", "error"))
+      .catch(() => notify("Failed to load drivers.", "error"))
       .finally(() => setLoading(false));
   };
 
@@ -81,7 +81,7 @@ export default function DriversPage() {
         "/managers/drivers",
         form
       );
-      notify("Chauffeur créé avec succès !");
+      notify("Driver created successfully!");
       setAddOpen(false);
       const name = `${form.first_name} ${form.last_name}`;
       setForm({ first_name: "", last_name: "", email: "", phone: "" });
@@ -95,7 +95,7 @@ export default function DriversPage() {
         });
       }
     } catch (err) {
-      setAddError(err instanceof Error ? err.message : "Création impossible.");
+      setAddError(err instanceof Error ? err.message : "Failed to create driver.");
     } finally {
       setAddSaving(false);
     }
@@ -120,11 +120,11 @@ export default function DriversPage() {
     setEditSaving(true);
     try {
       await patch(`/managers/drivers/${editTarget.id}`, editForm);
-      notify("Chauffeur mis à jour avec succès !");
+      notify("Driver updated successfully!");
       setEditTarget(null);
       load();
     } catch (err) {
-      setEditError(err instanceof Error ? err.message : "Échec de la modification.");
+      setEditError(err instanceof Error ? err.message : "Failed to update driver.");
     } finally {
       setEditSaving(false);
     }
@@ -136,11 +136,11 @@ export default function DriversPage() {
     setDeleting(true);
     try {
       await del(`/managers/drivers/${deleteTarget.id}`);
-      notify(`Chauffeur ${deleteTarget.first_name} ${deleteTarget.last_name} supprimé.`);
+      notify(`Driver ${deleteTarget.first_name} ${deleteTarget.last_name} deleted.`);
       setDeleteTarget(null);
       load();
     } catch (err) {
-      notify(err instanceof Error ? err.message : "Échec de la suppression.", "error");
+      notify(err instanceof Error ? err.message : "Failed to delete driver.", "error");
     } finally {
       setDeleting(false);
     }
@@ -153,7 +153,7 @@ export default function DriversPage() {
       const data = await post<{ invitation_link?: string; message: string }>(
         `/managers/drivers/${driver.id}/resend-invitation`
       );
-      notify("Email d'invitation renvoyé.");
+      notify("Invitation email resent.");
       if (data.invitation_link) {
         setInviteModal({
           link: data.invitation_link,
@@ -161,7 +161,7 @@ export default function DriversPage() {
         });
       }
     } catch (err) {
-      notify(err instanceof Error ? err.message : "Échec de l'envoi.", "error");
+      notify(err instanceof Error ? err.message : "Failed to send invitation.", "error");
     } finally {
       setActionId(null);
     }
@@ -174,10 +174,10 @@ export default function DriversPage() {
       await patch(`/managers/drivers/${d.id}/status`, {
         action: d.is_active ? "disable" : "enable",
       });
-      notify(d.is_active ? "Chauffeur désactivé." : "Chauffeur réactivé.");
+      notify(d.is_active ? "Driver disabled." : "Driver reactivated.");
       load();
     } catch (err) {
-      notify(err instanceof Error ? err.message : "Échec de la mise à jour.", "error");
+      notify(err instanceof Error ? err.message : "Failed to update status.", "error");
     } finally {
       setActionId(null);
     }
@@ -193,23 +193,23 @@ export default function DriversPage() {
   return (
     <div>
       <Topbar
-        title="Gestion des Chauffeurs"
-        subtitle="Ajout, modification, suppression et suivi des accès de vos conducteurs"
+        title="Driver Management"
+        subtitle="Add, edit, delete, and manage access for your fleet drivers"
         onMenu={openMobileMenu}
       />
 
       <div className="p-6 space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-slate-400">
-            {drivers.length} chauffeur(s) enregistré(s) dans votre flotte
+            {drivers.length} driver(s) registered in your fleet
           </p>
 
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={load} loading={loading}>
-              <RefreshCw className="h-3.5 w-3.5 mr-1" /> Actualiser
+              <RefreshCw className="h-3.5 w-3.5 mr-1" /> Refresh
             </Button>
             <Button variant="figma" onClick={() => setAddOpen(true)}>
-              <UserPlus className="h-4 w-4 mr-1.5" /> Inviter un chauffeur
+              <UserPlus className="h-4 w-4 mr-1.5" /> Invite Driver
             </Button>
           </div>
         </div>
@@ -223,11 +223,11 @@ export default function DriversPage() {
           ) : drivers.length === 0 ? (
             <EmptyState
               icon={<Truck className="h-8 w-8" />}
-              title="Aucun chauffeur"
-              description="Commencez par ajouter votre premier conducteur de flotte."
+              title="No drivers"
+              description="Get started by inviting your first fleet driver."
               action={
                 <Button variant="figma" onClick={() => setAddOpen(true)}>
-                  <UserPlus className="h-4 w-4 mr-1" /> Inviter un chauffeur
+                  <UserPlus className="h-4 w-4 mr-1" /> Invite Driver
                 </Button>
               }
             />
@@ -236,11 +236,11 @@ export default function DriversPage() {
               <table className="w-full text-left text-sm text-slate-300">
                 <thead className="border-b border-slate-800 bg-slate-900/60 text-xs font-semibold uppercase tracking-wider text-slate-400">
                   <tr>
-                    <th className="px-5 py-3.5">Chauffeur</th>
+                    <th className="px-5 py-3.5">Driver</th>
                     <th className="px-4 py-3.5">Email</th>
-                    <th className="px-4 py-3.5">Téléphone</th>
-                    <th className="px-4 py-3.5">Statut Compte</th>
-                    <th className="px-4 py-3.5">Disponibilité</th>
+                    <th className="px-4 py-3.5">Phone</th>
+                    <th className="px-4 py-3.5">Account Status</th>
+                    <th className="px-4 py-3.5">Availability</th>
                     <th className="px-5 py-3.5 text-right">Actions</th>
                   </tr>
                 </thead>
@@ -255,7 +255,7 @@ export default function DriversPage() {
                           </div>
                           <div>
                             <p>{d.first_name} {d.last_name}</p>
-                            <p className="text-[11px] text-slate-500">Inscrit le {d.created_at ? new Date(d.created_at).toLocaleDateString("fr-FR") : "—"}</p>
+                            <p className="text-[11px] text-slate-500">Registered {d.created_at ? new Date(d.created_at).toLocaleDateString("en-US") : "—"}</p>
                           </div>
                         </div>
                       </td>
@@ -279,18 +279,18 @@ export default function DriversPage() {
                       <td className="px-4 py-3.5">
                         {d.account_status === "INVITED" ? (
                           <div className="flex items-center gap-2">
-                            <Badge variant="warning">Invitation en attente</Badge>
+                            <Badge variant="warning">Pending Invitation</Badge>
                             <button
                               disabled={actionId === d.id}
                               onClick={() => resend(d)}
                               className="text-xs text-blue-400 hover:underline inline-flex items-center gap-1"
-                              title="Renvoyer l'email d'invitation"
+                              title="Resend invitation email"
                             >
-                              <MailPlus className="h-3 w-3" /> Relancer
+                              <MailPlus className="h-3 w-3" /> Resend
                             </button>
                           </div>
                         ) : (
-                          <Badge variant="success">Compte actif</Badge>
+                          <Badge variant="success">Active Account</Badge>
                         )}
                       </td>
 
@@ -307,7 +307,7 @@ export default function DriversPage() {
                             ].join(" ")}
                           />
                           <span className="text-slate-300 group-hover:text-white">
-                            {d.is_active ? "Opérationnel" : "Désactivé"}
+                            {d.is_active ? "Operational" : "Disabled"}
                           </span>
                         </button>
                       </td>
@@ -317,7 +317,7 @@ export default function DriversPage() {
                           {/* Edit button */}
                           <button
                             onClick={() => openEdit(d)}
-                            title="Modifier les coordonnées"
+                            title="Edit details"
                             className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white transition"
                           >
                             <Edit2 className="h-4 w-4" />
@@ -327,7 +327,7 @@ export default function DriversPage() {
                           <button
                             disabled={actionId === d.id}
                             onClick={() => toggle(d)}
-                            title={d.is_active ? "Désactiver le chauffeur" : "Réactiver le chauffeur"}
+                            title={d.is_active ? "Disable driver" : "Reactivate driver"}
                             className="rounded-lg p-1.5 text-slate-400 hover:bg-amber-500/10 hover:text-amber-400 transition"
                           >
                             <Power className="h-4 w-4" />
@@ -336,7 +336,7 @@ export default function DriversPage() {
                           {/* Delete button */}
                           <button
                             onClick={() => setDeleteTarget(d)}
-                            title="Supprimer définitivement"
+                            title="Delete permanently"
                             className="rounded-lg p-1.5 text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -355,34 +355,34 @@ export default function DriversPage() {
       {/* Add Driver Modal */}
       {addOpen && (
         <Modal
-          title="Inviter un nouveau chauffeur"
-          description="Renseignez les coordonnées du chauffeur. Un lien d'invitation sécurisé sera généré pour définir son mot de passe."
+          title="Invite New Driver"
+          description="Enter driver contact information. A secure invitation link will be generated to set their password."
           onClose={() => setAddOpen(false)}
         >
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <Input
-                label="Prénom"
+                label="First Name"
                 required
                 value={form.first_name}
                 onChange={(e) => setForm({ ...form, first_name: e.target.value })}
               />
               <Input
-                label="Nom"
+                label="Last Name"
                 required
                 value={form.last_name}
                 onChange={(e) => setForm({ ...form, last_name: e.target.value })}
               />
             </div>
             <Input
-              label="Adresse e-mail"
+              label="Email Address"
               type="email"
               required
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
             />
             <Input
-              label="Téléphone portable"
+              label="Mobile Phone"
               placeholder="+212 600 00 00 00"
               value={form.phone}
               onChange={(e) => setForm({ ...form, phone: e.target.value })}
@@ -396,10 +396,10 @@ export default function DriversPage() {
 
             <div className="flex justify-end gap-3 pt-2">
               <Button variant="outline" onClick={() => setAddOpen(false)}>
-                Annuler
+                Cancel
               </Button>
               <Button variant="figma" loading={addSaving} onClick={create}>
-                Envoyer l'invitation
+                Send Invitation
               </Button>
             </div>
           </div>
@@ -409,34 +409,34 @@ export default function DriversPage() {
       {/* Edit Driver Modal */}
       {editTarget && (
         <Modal
-          title={`Modifier le chauffeur : ${editTarget.first_name} ${editTarget.last_name}`}
-          description="Mettez à jour les coordonnées et les informations de contact."
+          title={`Edit Driver: ${editTarget.first_name} ${editTarget.last_name}`}
+          description="Update driver contact details and information."
           onClose={() => setEditTarget(null)}
         >
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <Input
-                label="Prénom"
+                label="First Name"
                 required
                 value={editForm.first_name}
                 onChange={(e) => setEditForm({ ...editForm, first_name: e.target.value })}
               />
               <Input
-                label="Nom"
+                label="Last Name"
                 required
                 value={editForm.last_name}
                 onChange={(e) => setEditForm({ ...editForm, last_name: e.target.value })}
               />
             </div>
             <Input
-              label="Adresse e-mail"
+              label="Email Address"
               type="email"
               required
               value={editForm.email}
               onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
             />
             <Input
-              label="Téléphone portable"
+              label="Mobile Phone"
               placeholder="+212 600 00 00 00"
               value={editForm.phone}
               onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
@@ -450,10 +450,10 @@ export default function DriversPage() {
 
             <div className="flex justify-end gap-3 pt-2">
               <Button variant="outline" onClick={() => setEditTarget(null)}>
-                Annuler
+                Cancel
               </Button>
               <Button variant="figma" loading={editSaving} onClick={saveEdit}>
-                Enregistrer
+                Save Changes
               </Button>
             </div>
           </div>
@@ -463,16 +463,16 @@ export default function DriversPage() {
       {/* Delete Driver Modal */}
       {deleteTarget && (
         <Modal
-          title="Supprimer ce chauffeur"
-          description={`Êtes-vous certain de vouloir supprimer définitivement le compte de ${deleteTarget.first_name} ${deleteTarget.last_name} (${deleteTarget.email}) ? Les cargaisons assignées seront automatiquement désassignées.`}
+          title="Delete Driver"
+          description={`Are you sure you want to permanently delete the account for ${deleteTarget.first_name} ${deleteTarget.last_name} (${deleteTarget.email})? Assigned shipments will be automatically unassigned.`}
           onClose={() => setDeleteTarget(null)}
         >
           <div className="flex justify-end gap-3 pt-3">
             <Button variant="outline" onClick={() => setDeleteTarget(null)}>
-              Annuler
+              Cancel
             </Button>
             <Button variant="danger" loading={deleting} onClick={confirmDelete}>
-              <Trash2 className="h-4 w-4 mr-1" /> Supprimer définitivement
+              <Trash2 className="h-4 w-4 mr-1" /> Delete Permanently
             </Button>
           </div>
         </Modal>
@@ -481,8 +481,8 @@ export default function DriversPage() {
       {/* Instant Invitation Link Modal */}
       {inviteModal && (
         <Modal
-          title="Invitation Chauffeur Prête !"
-          description={`L'invitation pour ${inviteModal.driverName} a été générée. Vous pouvez lui transmettre ce lien directement (utile si votre boîte e-mail locale ne délivre pas les courriels) :`}
+          title="Driver Invitation Ready!"
+          description={`The invitation for ${inviteModal.driverName} has been generated. You can share this link directly with them (useful if local email delivery is unavailable):`}
           onClose={() => setInviteModal(null)}
         >
           <div className="space-y-4">
@@ -491,19 +491,19 @@ export default function DriversPage() {
             </div>
 
             <div className="flex justify-between items-center pt-2">
-              <span className="text-xs text-slate-400">Valable 48 heures</span>
+              <span className="text-xs text-slate-400">Valid for 48 hours</span>
               <div className="flex gap-2">
                 <Button variant="outline" onClick={() => setInviteModal(null)}>
-                  Fermer
+                  Close
                 </Button>
                 <Button variant="figma" onClick={copyLink} className="flex items-center gap-1.5">
                   {copied ? (
                     <>
-                      <Check className="h-4 w-4 text-emerald-400" /> Lien copié !
+                      <Check className="h-4 w-4 text-emerald-400" /> Link copied!
                     </>
                   ) : (
                     <>
-                      <Copy className="h-4 w-4" /> Copier le lien
+                      <Copy className="h-4 w-4" /> Copy Link
                     </>
                   )}
                 </Button>

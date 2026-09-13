@@ -115,7 +115,7 @@ async def register_manager(
     if existing_user.scalar_one_or_none() is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Un compte avec cette adresse email existe déjà.",
+            detail="An account with this email address already exists.",
         )
 
     # 1. Créer l'organisation
@@ -172,14 +172,14 @@ async def complete_manager_registration(
     if not token_payload or token_payload.get("type") != "password":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Jeton de finalisation invalide ou expiré.",
+            detail="Invalid or expired completion token.",
         )
 
     user_id_str = token_payload.get("sub")
     if not user_id_str:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Jeton invalide.",
+            detail="Invalid token.",
         )
 
     result = await db.execute(
@@ -191,7 +191,7 @@ async def complete_manager_registration(
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Compte introuvable.",
+            detail="Account not found.",
         )
 
     user.password = hash_password(password)
@@ -242,17 +242,17 @@ async def verify_otp(
     otp = result.scalar_one_or_none()
 
     if otp is None:
-        return False, "Code expiré ou introuvable. Veuillez en demander un nouveau.", None
+        return False, "Expired or invalid code. Please request a new one.", None
 
     otp.attempts += 1
 
     if otp.attempts > OTP_MAX_ATTEMPTS:
         await db.commit()
-        return False, "Trop de tentatives. Veuillez demander un nouveau code.", None
+        return False, "Too many attempts. Please request a new code.", None
 
     if otp.code != code:
         await db.commit()
-        return False, "Code incorrect.", None
+        return False, "Incorrect code.", None
 
     # Marquer le code comme vérifié
     otp.verified_at = now
@@ -261,13 +261,13 @@ async def verify_otp(
     result2 = await db.execute(select(User).where(User.id == user_id))
     user = result2.scalar_one_or_none()
     if user is None:
-        return False, "Utilisateur introuvable.", None
+        return False, "User not found.", None
 
     user.email_verified = True
     user.email_verified_at = now
 
     await db.commit()
-    return True, "Email vérifié avec succès.", user.organization_id
+    return True, "Email verified successfully.", user.organization_id
 
 
 # ─────────────────────────────────────────────
@@ -284,13 +284,13 @@ async def resend_otp(db: AsyncSession, user_id: UUID) -> tuple[str | None, str]:
     user = result.scalar_one_or_none()
 
     if user is None:
-        return None, "Utilisateur introuvable."
+        return None, "User not found."
     if user.email_verified:
-        return None, "L'email est déjà vérifié."
+        return None, "Email is already verified."
 
     otp_code = await _create_otp(db, user_id)
     await db.commit()
-    return otp_code, "Un nouveau code a été envoyé."
+    return otp_code, "A new verification code has been sent."
 
 
 # ─────────────────────────────────────────────
@@ -380,7 +380,7 @@ async def create_driver(
     if existing_user.scalar_one_or_none() is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Un compte avec cette adresse email existe déjà.",
+            detail="An account with this email address already exists.",
         )
 
     # 1. Créer l'utilisateur avec password=None et statut INVITED
@@ -436,13 +436,13 @@ async def validate_invitation_token(
     if invitation is None or invitation.used_at is not None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Ce lien d'invitation est invalide ou a déjà été utilisé.",
+            detail="This invitation link is invalid or has already been used.",
         )
 
     if invitation.expires_at <= now:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Ce lien d'invitation a expiré. Veuillez contacter votre responsable.",
+            detail="This invitation link has expired. Please contact your manager.",
         )
 
     user_result = await db.execute(select(User).where(User.id == invitation.user_id))
@@ -451,7 +451,7 @@ async def validate_invitation_token(
     if user is None or user.account_status != "INVITED":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Compte introuvable ou déjà activé.",
+            detail="Account not found or already activated.",
         )
 
     org = None
@@ -484,13 +484,13 @@ async def set_driver_password(
     if invitation is None or invitation.used_at is not None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Ce lien d'invitation est invalide ou a déjà été utilisé.",
+            detail="This invitation link is invalid or has already been used.",
         )
 
     if invitation.expires_at <= now:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Ce lien d'invitation a expiré. Veuillez contacter votre responsable.",
+            detail="This invitation link has expired. Please contact your manager.",
         )
 
     user_result = await db.execute(select(User).where(User.id == invitation.user_id))
@@ -499,7 +499,7 @@ async def set_driver_password(
     if user is None or user.account_status != "INVITED":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Compte introuvable ou déjà activé.",
+            detail="Account not found or already activated.",
         )
 
     # Mettre à jour l'utilisateur et l'invitation

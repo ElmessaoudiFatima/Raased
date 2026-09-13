@@ -26,7 +26,7 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
     logger.exception("Unhandled error processing %s: %s", request.url.path, exc)
     return JSONResponse(
         status_code=500,
-        content={"detail": "Une erreur interne est survenue sur le serveur."},
+        content={"detail": "An internal server error occurred."},
     )
 
 # Configure CORS

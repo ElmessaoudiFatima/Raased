@@ -174,6 +174,31 @@ const severityStyles: Record<string, string> = {
   DISABLED: "bg-slate-200 text-slate-500",
 };
 
+const labelMap: Record<string, string> = {
+  LOW: "Low",
+  MEDIUM: "Medium",
+  HIGH: "High",
+  CRITICAL: "Critical",
+  NORMAL: "Normal",
+  EVENT: "Event",
+  INCIDENT: "Incident",
+  CRISIS: "Crisis",
+  OPEN: "Open",
+  ACKNOWLEDGED: "Acknowledged",
+  CLOSED: "Closed",
+  PENDING: "Pending",
+  APPROVED: "Approved",
+  REJECTED: "Rejected",
+  ACTIVE: "Active",
+  IN_TRANSIT: "In Transit",
+  DELIVERED: "Delivered",
+  INVITED: "Invited",
+  DISABLED: "Disabled",
+  SUCCESS: "Success",
+  WARNING: "Warning",
+  DANGER: "Danger",
+};
+
 export function Badge({
   value,
   children,
@@ -185,8 +210,8 @@ export function Badge({
   variant?: string;
   className?: string;
 }) {
-  const text = children || value?.replace(/_/g, " ") || "";
   const key = (variant || value || "").toUpperCase();
+  const text = children || labelMap[key] || value?.replace(/_/g, " ") || "";
   const style =
     key === "SUCCESS" || key === "APPROVED" || key === "ACTIVE" || key === "DELIVERED"
       ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"

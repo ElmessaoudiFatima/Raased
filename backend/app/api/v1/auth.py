@@ -62,7 +62,7 @@ async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)):
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Email ou mot de passe incorrect, ou email non vérifié.",
+            detail="Incorrect email or password, or email not verified.",
         )
 
     token = create_access_token({
@@ -139,7 +139,7 @@ async def register_verify(
     return RegisterVerifyResponse(
         password_token=password_token,
         user_id=payload.user_id,
-        message="E-mail vérifié. Définissez maintenant votre mot de passe.",
+        message="Email verified. You can now set your password.",
     )
 
 
@@ -167,7 +167,7 @@ async def register_complete(
         access_token=token,
         token_type="bearer",
         user=user,
-        message="Compte Raased créé avec succès.",
+        message="Raased account created successfully.",
     )
 
 
@@ -188,7 +188,7 @@ async def register_resend(
     result = await db.execute(select(User).where(User.id == payload.user_id))
     user = result.scalar_one_or_none()
     if user is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Utilisateur introuvable.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
 
     otp_code, message = await resend_otp(db, payload.user_id)
     if otp_code is None:
@@ -320,7 +320,7 @@ async def resend_email_otp(
     result = await db.execute(select(User).where(User.id == payload.user_id))
     user = result.scalar_one_or_none()
     if user is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Utilisateur introuvable.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
 
     otp_code, message = await resend_otp(db, payload.user_id)
 
@@ -399,5 +399,5 @@ async def set_password(
     """
     await set_driver_password(db, payload.token, payload.password)
     return {
-        "message": "Mot de passe défini avec succès. Votre compte est activé et vous pouvez maintenant vous connecter."
+        "message": "Password set successfully. Your account is now active and you can sign in."
     }

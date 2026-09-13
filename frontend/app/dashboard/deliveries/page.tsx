@@ -52,7 +52,7 @@ export default function DeliveriesPage() {
 
   return (
     <div>
-      <Topbar title="Mes livraisons" subtitle="Vue chauffeur — vos convois" onMenu={openMobileMenu} />
+      <Topbar title="My Deliveries" subtitle="Driver view — your convoys" onMenu={openMobileMenu} />
       <div className="p-6">
         {loading ? (
           <div className="flex h-40 items-center justify-center">
@@ -79,7 +79,7 @@ export default function DeliveriesPage() {
                       </p>
                       {overview.current.cargo.vehicle_registration && (
                         <p className="text-xs text-slate-400">
-                          Véhicule : {overview.current.cargo.vehicle_registration} · {overview.current.cargo.type.replace(/_/g, " ")}
+                          Vehicle: {overview.current.cargo.vehicle_registration} · {overview.current.cargo.type.replace(/_/g, " ")}
                         </p>
                       )}
                     </div>
@@ -89,7 +89,7 @@ export default function DeliveriesPage() {
                       <p className="text-2xl font-extrabold text-raased-teal">
                         {overview.current.position.progress_pct}%
                       </p>
-                      <p className="text-xs text-slate-400">du trajet · ETA ~{overview.current.position.eta_minutes} min</p>
+                      <p className="text-xs text-slate-400">of journey · ETA ~{overview.current.position.eta_minutes} min</p>
                     </div>
                   )}
                 </div>
@@ -99,8 +99,8 @@ export default function DeliveriesPage() {
             {!overview?.current && (
               <EmptyState
                 icon={<Package className="h-8 w-8" />}
-                title="Aucun convoi en cours"
-                description="En attente d'une assignation par votre manager."
+                title="No ongoing convoy"
+                description="Waiting for an assignment by your manager."
               />
             )}
 
@@ -108,17 +108,17 @@ export default function DeliveriesPage() {
               <Card className="mt-6 overflow-hidden">
                 <div className="flex items-center gap-2 border-b border-slate-100 px-5 py-4">
                   <History className="h-4 w-4 text-slate-400" />
-                  <h3 className="font-bold text-raased-navy">Livraisons terminées</h3>
+                  <h3 className="font-bold text-raased-navy">Completed deliveries</h3>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-sm">
                     <thead>
                       <tr className="border-b border-slate-100 bg-slate-50/70 text-xs uppercase tracking-wide text-slate-500">
-                        <th className="px-5 py-3 font-semibold">Référence</th>
-                        <th className="px-5 py-3 font-semibold">Itinéraire</th>
+                        <th className="px-5 py-3 font-semibold">Reference</th>
+                        <th className="px-5 py-3 font-semibold">Route</th>
                         <th className="px-5 py-3 font-semibold">Type</th>
-                        <th className="px-5 py-3 font-semibold">Criticité</th>
-                        <th className="px-5 py-3 font-semibold">Statut</th>
+                        <th className="px-5 py-3 font-semibold">Criticality</th>
+                        <th className="px-5 py-3 font-semibold">Status</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">

@@ -33,25 +33,25 @@ const NAV: NavItem[] = [
   // ADMIN ROUTES
   {
     href: "/dashboard/admin",
-    label: "Tableau de bord",
+    label: "Dashboard",
     icon: <LayoutGrid className="h-5 w-5" />,
     roles: ["ADMIN"],
   },
   {
     href: "/dashboard/admin/users",
-    label: "Gestion utilisateurs",
+    label: "User Management",
     icon: <Users className="h-5 w-5" />,
     roles: ["ADMIN"],
   },
   {
     href: "/dashboard/admin/requests",
-    label: "Demandes de création",
+    label: "Registration Requests",
     icon: <FileCheck2 className="h-5 w-5" />,
     roles: ["ADMIN"],
   },
   {
     href: "/dashboard/admin/audit",
-    label: "Audit & Sécurité",
+    label: "Audit & Security",
     icon: <ShieldCheck className="h-5 w-5" />,
     roles: ["ADMIN"],
   },
@@ -59,49 +59,55 @@ const NAV: NavItem[] = [
   // MANAGER ROUTES
   {
     href: "/dashboard/observatory",
-    label: "Observatoire",
+    label: "Observatory",
     icon: <Activity className="h-5 w-5" />,
     roles: ["MANAGER"],
   },
   {
     href: "/dashboard/overview",
-    label: "Tableau de bord",
+    label: "Overview",
     icon: <LayoutGrid className="h-5 w-5" />,
     roles: ["MANAGER"],
   },
   {
     href: "/dashboard/map",
-    label: "Carte temps réel",
+    label: "Live Map",
     icon: <Map className="h-5 w-5" />,
     roles: ["MANAGER"],
   },
   {
     href: "/dashboard/drivers",
-    label: "Chauffeurs",
+    label: "Drivers",
     icon: <Truck className="h-5 w-5" />,
     roles: ["MANAGER"],
   },
   {
     href: "/dashboard/ai-decisions",
-    label: "Décisions IA",
+    label: "AI Decisions",
     icon: <Sparkles className="h-5 w-5 text-amber-400" />,
     roles: ["MANAGER"],
   },
   {
+    href: "/dashboard/corridors",
+    label: "Corridors",
+    icon: <Building2 className="h-5 w-5" />,
+    roles: ["MANAGER"],
+  },
+  {
     href: "/dashboard/cargos",
-    label: "Cargaisons",
+    label: "Cargo Shipments",
     icon: <Boxes className="h-5 w-5" />,
     roles: ["MANAGER"],
   },
   {
     href: "/dashboard/trackers",
-    label: "Trackers",
+    label: "GPS Trackers",
     icon: <Radio className="h-5 w-5" />,
     roles: ["MANAGER"],
   },
   {
     href: "/dashboard/alerts",
-    label: "Alertes",
+    label: "Security Alerts",
     icon: <AlertTriangle className="h-5 w-5" />,
     roles: ["MANAGER"],
   },
@@ -111,29 +117,30 @@ const NAV: NavItem[] = [
     icon: <UserCog className="h-5 w-5" />,
     roles: ["MANAGER"],
   },
+  
 
   // DRIVER ROUTES
   {
     href: "/dashboard/driver/overview",
-    label: "Mon tableau de bord",
+    label: "My Dashboard",
     icon: <LayoutGrid className="h-5 w-5" />,
     roles: ["DRIVER"],
   },
   {
     href: "/dashboard/driver/map",
-    label: "Ma carte en direct",
+    label: "Mission Map",
     icon: <Map className="h-5 w-5" />,
     roles: ["DRIVER"],
   },
   {
     href: "/dashboard/deliveries",
-    label: "Mes livraisons",
+    label: "My Deliveries",
     icon: <Boxes className="h-5 w-5" />,
     roles: ["DRIVER"],
   },
   {
     href: "/dashboard/driver/alerts",
-    label: "Alertes & IA",
+    label: "Alerts & AI",
     icon: <AlertTriangle className="h-5 w-5" />,
     roles: ["DRIVER"],
   },
@@ -158,9 +165,9 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
       <div className="flex-1 overflow-y-auto px-3 py-4">
         <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
           {user?.role === "MANAGER"
-            ? "Pilotage Flotte"
+            ? "Fleet Operations"
             : user?.role === "DRIVER"
-            ? "Espace Chauffeur"
+            ? "Driver Workspace"
             : "Super Administration"}
         </p>
         <nav className="space-y-1">
@@ -199,13 +206,13 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
         <Link
           href="/dashboard/profile"
           onClick={onNavigate}
-          title="Voir et modifier mon profil"
+          title="View and edit profile"
           className="mb-2 flex items-center gap-3 rounded-xl px-3 py-2.5 transition hover:bg-slate-800/80 border border-transparent hover:border-slate-700/60 group"
         >
           {user?.avatar_url ? (
             <img
               src={user.avatar_url}
-              alt="Photo de profil"
+              alt="Profile photo"
               className="h-10 w-10 rounded-full object-cover ring-2 ring-blue-500/40 shadow"
             />
           ) : (
@@ -220,12 +227,12 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
             </p>
             <p className="truncate text-xs text-slate-400">
               {user?.role === "ADMIN"
-                ? "Administrateur"
+                ? "Administrator"
                 : user?.role === "MANAGER"
                 ? "Manager"
-                : "Chauffeur"}
+                : "Driver"}
               {" • "}
-              <span className="text-blue-400 group-hover:underline">Profil</span>
+              <span className="text-blue-400 group-hover:underline">Profile</span>
             </p>
           </div>
         </Link>
@@ -233,7 +240,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
           onClick={logout}
           className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-slate-400 transition-colors hover:bg-red-500/10 hover:text-red-400"
         >
-          <LogOut className="h-4 w-4" /> Se déconnecter
+          <LogOut className="h-4 w-4" /> Sign Out
         </button>
       </div>
     </aside>

@@ -9,9 +9,9 @@ import { Stepper } from "@/components/Stepper";
 import { post } from "@/lib/api";
 
 const steps = [
-  { title: "E-mail" },
-  { title: "Code OTP" },
-  { title: "Nouveau mot de passe" },
+  { title: "Email" },
+  { title: "OTP Code" },
+  { title: "New Password" },
 ];
 
 export default function ForgotPasswordPage() {
@@ -61,7 +61,7 @@ export default function ForgotPasswordPage() {
       setStep(1);
       setTimeout(() => refs.current[0]?.focus(), 100);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Une erreur est survenue.");
+      setError(err instanceof Error ? err.message : "An error occurred.");
     } finally {
       setLoading(false);
       setResending(false);
@@ -109,7 +109,7 @@ export default function ForgotPasswordPage() {
       setToken(data.reset_token);
       setStep(2);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Code incorrect ou expiré.");
+      setError(err instanceof Error ? err.message : "Invalid or expired code.");
     } finally {
       setLoading(false);
     }
@@ -126,7 +126,7 @@ export default function ForgotPasswordPage() {
       });
       setDone(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Impossible de réinitialiser le mot de passe.");
+      setError(err instanceof Error ? err.message : "Failed to reset password.");
     } finally {
       setLoading(false);
     }
@@ -138,15 +138,15 @@ export default function ForgotPasswordPage() {
         href="/login"
         className="mb-5 inline-flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-blue-400 transition"
       >
-        <ArrowLeft className="h-3.5 w-3.5" /> Retour à la connexion
+        <ArrowLeft className="h-3.5 w-3.5" /> Back to login
       </Link>
 
       <div className="mb-6">
         <h2 className="text-2xl font-bold tracking-tight text-white">
-          Mot de passe oublié
+          Forgot Password
         </h2>
         <p className="mt-1 text-xs text-slate-400">
-          Réinitialisez l'accès sécurisé à votre compte Raased
+          Reset secure access to your Raased account
         </p>
       </div>
 
@@ -162,14 +162,14 @@ export default function ForgotPasswordPage() {
             <CheckCircle2 className="h-8 w-8" />
           </div>
           <h3 className="mt-4 text-xl font-bold text-white">
-            Mot de passe mis à jour !
+            Password updated!
           </h3>
           <p className="mt-2 text-xs text-slate-400">
-            Votre nouveau mot de passe est actif. Vous pouvez vous reconnecter.
+            Your new password is now active. You can sign in.
           </p>
           <Link href="/login" className="mt-6 inline-block w-full">
             <Button variant="figma" className="w-full py-3">
-              Se connecter <ArrowRight className="h-4 w-4 ml-1" />
+              Sign In <ArrowRight className="h-4 w-4 ml-1" />
             </Button>
           </Link>
         </div>
@@ -179,7 +179,7 @@ export default function ForgotPasswordPage() {
             <div className="space-y-4">
               <div>
                 <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-slate-300">
-                  Adresse e-mail
+                  Email address
                 </label>
                 <div className="relative">
                   <Mail className="pointer-events-none absolute left-3.5 top-3 h-4 w-4 text-slate-500" />
@@ -187,7 +187,7 @@ export default function ForgotPasswordPage() {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="votre@email-professionnel.com"
+                    placeholder="your@company.com"
                     required
                     className="w-full rounded-xl border border-slate-700/80 bg-[#0a101d] py-2.5 pl-10 pr-3.5 text-sm text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                   />
@@ -208,7 +208,7 @@ export default function ForgotPasswordPage() {
                 disabled={!email.includes("@")}
                 className="w-full py-3"
               >
-                Envoyer le code OTP <ArrowRight className="h-4 w-4 ml-1" />
+                Send OTP code <ArrowRight className="h-4 w-4 ml-1" />
               </Button>
             </div>
           )}
@@ -216,9 +216,9 @@ export default function ForgotPasswordPage() {
           {step === 1 && (
             <div className="space-y-5 text-center">
               <div>
-                <h3 className="text-base font-bold text-white">Saisissez le code à 6 chiffres</h3>
+                <h3 className="text-base font-bold text-white">Enter the 6-digit code</h3>
                 <p className="mt-1 text-xs text-slate-400">
-                  Code envoyé à <span className="font-semibold text-slate-200">{email}</span>
+                  Code sent to <span className="font-semibold text-slate-200">{email}</span>
                 </p>
               </div>
 
@@ -244,7 +244,7 @@ export default function ForgotPasswordPage() {
               {devNotice && (
                 <div className="rounded-xl border border-emerald-500/30 bg-emerald-950/30 p-3.5 text-left text-xs text-emerald-300 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg">
                   <div>
-                    <p className="font-semibold text-emerald-200">Code de vérification (Simulation / Local) :</p>
+                    <p className="font-semibold text-emerald-200">Verification code (Simulation / Local):</p>
                     <p className="font-mono text-base font-bold text-white tracking-widest mt-0.5">{devNotice}</p>
                   </div>
                   <button
@@ -256,7 +256,7 @@ export default function ForgotPasswordPage() {
                     }}
                     className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow transition whitespace-nowrap self-start sm:self-auto"
                   >
-                    Remplir automatiquement
+                    Auto-fill
                   </button>
                 </div>
               )}
@@ -276,7 +276,7 @@ export default function ForgotPasswordPage() {
                   disabled={code.length !== 6}
                   className="w-full py-3"
                 >
-                  Vérifier le code <ArrowRight className="h-4 w-4 ml-1" />
+                  Verify code <ArrowRight className="h-4 w-4 ml-1" />
                 </Button>
 
                 <button
@@ -285,7 +285,7 @@ export default function ForgotPasswordPage() {
                   disabled={resending || cooldown > 0}
                   className="text-xs font-medium text-slate-400 hover:text-blue-400 disabled:opacity-50 transition"
                 >
-                  {cooldown > 0 ? `Renvoyer le code dans ${cooldown}s` : "Renvoyer le code"}
+                  {cooldown > 0 ? `Resend code in ${cooldown}s` : "Resend code"}
                 </button>
               </div>
             </div>
@@ -295,7 +295,7 @@ export default function ForgotPasswordPage() {
             <div className="space-y-4">
               <div>
                 <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-slate-300">
-                  Nouveau mot de passe
+                  New password
                 </label>
                 <div className="relative">
                   <KeyRound className="pointer-events-none absolute left-3.5 top-3 h-4 w-4 text-slate-500" />
@@ -303,7 +303,7 @@ export default function ForgotPasswordPage() {
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="8 caractères minimum"
+                    placeholder="8 characters minimum"
                     minLength={8}
                     required
                     className="w-full rounded-xl border border-slate-700/80 bg-[#0a101d] py-2.5 pl-10 pr-3.5 text-sm text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
@@ -313,13 +313,13 @@ export default function ForgotPasswordPage() {
 
               <div>
                 <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-slate-300">
-                  Confirmer le mot de passe
+                  Confirm password
                 </label>
                 <input
                   type="password"
                   value={confirm}
                   onChange={(e) => setConfirm(e.target.value)}
-                  placeholder="Répétez le mot de passe"
+                  placeholder="Repeat password"
                   minLength={8}
                   required
                   className="w-full rounded-xl border border-slate-700/80 bg-[#0a101d] px-3.5 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
@@ -340,7 +340,7 @@ export default function ForgotPasswordPage() {
                 disabled={password.length < 8 || password !== confirm}
                 className="w-full py-3"
               >
-                Valider le nouveau mot de passe <ArrowRight className="h-4 w-4 ml-1" />
+                Update password <ArrowRight className="h-4 w-4 ml-1" />
               </Button>
             </div>
           )}

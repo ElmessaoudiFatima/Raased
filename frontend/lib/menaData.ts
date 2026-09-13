@@ -10,7 +10,7 @@ export interface MenaCountry {
 export const MENA_COUNTRIES: MenaCountry[] = [
   {
     "code": "MA",
-    "name": "Maroc",
+    "name": "Morocco",
     "name_ar": "المغرب",
     "dialCode": "+212",
     "flag": "🇲🇦",
@@ -19,38 +19,38 @@ export const MENA_COUNTRIES: MenaCountry[] = [
       "Rabat",
       "Tanger",
       "Marrakech",
-      "Fès",
+      "Fes",
       "Agadir",
-      "Meknès",
+      "Meknes",
       "Oujda",
       "Kenitra",
-      "Tétouan",
+      "Tetouan",
       "Safi",
-      "Mohammédia",
+      "Mohammedia",
       "El Jadida",
       "Nador",
-      "Béni Mellal",
-      "Laâyoune",
+      "Beni Mellal",
+      "Laayoune",
       "Dakhla",
       "Khouribga"
     ]
   },
   {
     "code": "DZ",
-    "name": "Algérie",
+    "name": "Algeria",
     "name_ar": "الجزائر",
     "dialCode": "+213",
     "flag": "🇩🇿",
     "cities": [
-      "Alger",
+      "Algiers",
       "Oran",
       "Constantine",
       "Annaba",
       "Blida",
       "Batna",
-      "Sétif",
+      "Setif",
       "Tlemcen",
-      "Béjaïa",
+      "Bejaia",
       "Biskra",
       "Tizi Ouzou",
       "Chlef"
@@ -58,7 +58,7 @@ export const MENA_COUNTRIES: MenaCountry[] = [
   },
   {
     "code": "TN",
-    "name": "Tunisie",
+    "name": "Tunisia",
     "name_ar": "تونس",
     "dialCode": "+216",
     "flag": "🇹🇳",
@@ -68,7 +68,7 @@ export const MENA_COUNTRIES: MenaCountry[] = [
       "Sousse",
       "Bizerte",
       "Kairouan",
-      "Gabès",
+      "Gabes",
       "Ariana",
       "Monastir",
       "La Marsa",
@@ -78,40 +78,40 @@ export const MENA_COUNTRIES: MenaCountry[] = [
   },
   {
     "code": "EG",
-    "name": "Égypte",
+    "name": "Egypt",
     "name_ar": "مصر",
     "dialCode": "+20",
     "flag": "🇪🇬",
     "cities": [
-      "Le Caire",
-      "Alexandrie",
-      "Gizeh",
-      "Port-Saïd",
+      "Cairo",
+      "Alexandria",
+      "Giza",
+      "Port Said",
       "Suez",
-      "Mansourah",
+      "Mansoura",
       "Tanta",
-      "Assiout",
-      "Louxor",
-      "Assouan",
-      "Ismaïlia"
+      "Asyut",
+      "Luxor",
+      "Aswan",
+      "Ismailia"
     ]
   },
   {
     "code": "SA",
-    "name": "Arabie Saoudite",
+    "name": "Saudi Arabia",
     "name_ar": "السعودية",
     "dialCode": "+966",
     "flag": "🇸🇦",
     "cities": [
-      "Riyad",
-      "Djeddah",
-      "La Mecque",
-      "Médine",
+      "Riyadh",
+      "Jeddah",
+      "Mecca",
+      "Medina",
       "Dammam",
       "Khobar",
-      "Tabouk",
+      "Tabuk",
       "Abha",
-      "Taëf",
+      "Taif",
       "Jubail",
       "Yanbu",
       "Najran"
@@ -119,18 +119,18 @@ export const MENA_COUNTRIES: MenaCountry[] = [
   },
   {
     "code": "AE",
-    "name": "Émirats Arabes Unis",
+    "name": "United Arab Emirates",
     "name_ar": "الإمارات",
     "dialCode": "+971",
     "flag": "🇦🇪",
     "cities": [
-      "Dubaï",
-      "Abou Dabi",
-      "Charjah",
+      "Dubai",
+      "Abu Dhabi",
+      "Sharjah",
       "Ajman",
-      "Ras el Khaïmah",
+      "Ras Al Khaimah",
       "Fujairah",
-      "Oumm al Qaïwaïn",
+      "Umm Al Quwain",
       "Al Ain"
     ]
   },
@@ -151,12 +151,12 @@ export const MENA_COUNTRIES: MenaCountry[] = [
   },
   {
     "code": "KW",
-    "name": "Koweït",
+    "name": "Kuwait",
     "name_ar": "الكويت",
     "dialCode": "+965",
     "flag": "🇰🇼",
     "cities": [
-      "Koweït City",
+      "Kuwait City",
       "Al Ahmadi",
       "Hawalli",
       "Salmiya",
@@ -166,7 +166,7 @@ export const MENA_COUNTRIES: MenaCountry[] = [
   },
   {
     "code": "BH",
-    "name": "Bahreïn",
+    "name": "Bahrain",
     "name_ar": "البحرين",
     "dialCode": "+973",
     "flag": "🇧🇭",
@@ -186,18 +186,18 @@ export const MENA_COUNTRIES: MenaCountry[] = [
     "dialCode": "+968",
     "flag": "🇴🇲",
     "cities": [
-      "Mascate",
+      "Muscat",
       "Salalah",
       "Sohar",
       "Nizwa",
-      "Sour",
+      "Sur",
       "Seeb",
       "Barka"
     ]
   },
   {
     "code": "JO",
-    "name": "Jordanie",
+    "name": "Jordan",
     "name_ar": "الأردن",
     "dialCode": "+962",
     "flag": "🇯🇴",
@@ -213,40 +213,40 @@ export const MENA_COUNTRIES: MenaCountry[] = [
   },
   {
     "code": "LB",
-    "name": "Liban",
+    "name": "Lebanon",
     "name_ar": "لبنان",
     "dialCode": "+961",
     "flag": "🇱🇧",
     "cities": [
-      "Beyrouth",
+      "Beirut",
       "Tripoli",
       "Sidon",
-      "Tyr",
+      "Tyre",
       "Jounieh",
-      "Zahlé",
+      "Zahle",
       "Byblos"
     ]
   },
   {
     "code": "IQ",
-    "name": "Irak",
+    "name": "Iraq",
     "name_ar": "العراق",
     "dialCode": "+964",
     "flag": "🇮🇶",
     "cities": [
-      "Bagdad",
-      "Bassorah",
+      "Baghdad",
+      "Basra",
       "Erbil",
-      "Mossoul",
-      "Souleimaniye",
-      "Nadjaf",
-      "Kerbala",
-      "Kirkouk"
+      "Mosul",
+      "Sulaymaniyah",
+      "Najaf",
+      "Karbala",
+      "Kirkuk"
     ]
   },
   {
     "code": "MR",
-    "name": "Mauritanie",
+    "name": "Mauritania",
     "name_ar": "موريتانيا",
     "dialCode": "+222",
     "flag": "🇲🇷",
@@ -255,14 +255,14 @@ export const MENA_COUNTRIES: MenaCountry[] = [
       "Nouadhibou",
       "Kiffa",
       "Rosso",
-      "Kaédi",
-      "Zouérat",
+      "Kaedi",
+      "Zouerate",
       "Atar"
     ]
   },
   {
     "code": "LY",
-    "name": "Libye",
+    "name": "Libya",
     "name_ar": "ليبيا",
     "dialCode": "+218",
     "flag": "🇱🇾",
@@ -271,21 +271,21 @@ export const MENA_COUNTRIES: MenaCountry[] = [
       "Benghazi",
       "Misrata",
       "Al Bayda",
-      "Zaouïa",
-      "Tobrouk",
-      "Syrte"
+      "Zawiya",
+      "Tobruk",
+      "Sirte"
     ]
   },
   {
     "code": "SD",
-    "name": "Soudan",
+    "name": "Sudan",
     "name_ar": "السودان",
     "dialCode": "+249",
     "flag": "🇸🇩",
     "cities": [
       "Khartoum",
       "Omdurman",
-      "Port-Soudan",
+      "Port Sudan",
       "Kassala",
       "Nyala",
       "Wad Madani"
@@ -293,15 +293,15 @@ export const MENA_COUNTRIES: MenaCountry[] = [
   },
   {
     "code": "YE",
-    "name": "Yémen",
+    "name": "Yemen",
     "name_ar": "اليمن",
     "dialCode": "+967",
     "flag": "🇾🇪",
     "cities": [
       "Sanaa",
       "Aden",
-      "Taëz",
-      "Al-Hodeïda",
+      "Taiz",
+      "Al Hudaydah",
       "Ibb",
       "Mukalla"
     ]
@@ -313,28 +313,28 @@ export const MENA_COUNTRIES: MenaCountry[] = [
     "dialCode": "+970",
     "flag": "🇵🇸",
     "cities": [
-      "Jérusalem-Est",
+      "East Jerusalem",
       "Ramallah",
       "Gaza",
-      "Naplouse",
-      "Hébron",
-      "Bethléem",
-      "Jénine"
+      "Nablus",
+      "Hebron",
+      "Bethlehem",
+      "Jenin"
     ]
   },
   {
     "code": "SY",
-    "name": "Syrie",
+    "name": "Syria",
     "name_ar": "سوريا",
     "dialCode": "+963",
     "flag": "🇸🇾",
     "cities": [
-      "Damas",
-      "Alep",
+      "Damascus",
+      "Aleppo",
       "Homs",
-      "Lattaquié",
+      "Latakia",
       "Hama",
-      "Tartous"
+      "Tartus"
     ]
   },
   {

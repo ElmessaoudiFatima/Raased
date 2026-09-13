@@ -74,7 +74,7 @@ export default function AdminRequestsPage() {
     setLoading(true);
     get<any>("/admin/organizations?status=PENDING")
       .then((d) => setRequests(Array.isArray(d) ? d : (d?.organizations ?? [])))
-      .catch(() => notify("Impossible de charger les demandes.", "error"))
+      .catch(() => notify("Unable to load requests.", "error"))
       .finally(() => setLoading(false));
   };
 
@@ -86,7 +86,7 @@ export default function AdminRequestsPage() {
       const data = await get<any>(`/admin/organizations/${orgId}`);
       setSelectedOrg(data?.organization ?? data);
     } catch {
-      notify("Impossible de charger les détails.", "error");
+      notify("Unable to load details.", "error");
     } finally {
       setInspectLoading(false);
     }
@@ -97,11 +97,11 @@ export default function AdminRequestsPage() {
     setActing(true);
     try {
       await patch(`/admin/organizations/${orgId}/approve`);
-      notify(`L'organisation ${orgName} a été approuvée avec succès !`);
+      notify(`The organization ${orgName} has been successfully approved!`);
       setSelectedOrg(null);
       load();
     } catch (err) {
-      notify(err instanceof Error ? err.message : "Erreur d'approbation.", "error");
+      notify(err instanceof Error ? err.message : "Approval error.", "error");
     } finally {
       setActing(false);
     }
@@ -112,15 +112,15 @@ export default function AdminRequestsPage() {
     setActing(true);
     try {
       await patch(`/admin/organizations/${rejectModal.id}/reject`, {
-        rejection_reason: rejectReason || "Dossier non conforme ou incomplet.",
+        rejection_reason: rejectReason || "Non-compliant or incomplete file.",
       });
-      notify(`Demande de ${rejectModal.name} rejetée.`);
+      notify(`Request from ${rejectModal.name} rejected.`);
       setRejectModal(null);
       setSelectedOrg(null);
       setRejectReason("");
       load();
     } catch (err) {
-      notify(err instanceof Error ? err.message : "Erreur de rejet.", "error");
+      notify(err instanceof Error ? err.message : "Rejection error.", "error");
     } finally {
       setActing(false);
     }
@@ -129,18 +129,18 @@ export default function AdminRequestsPage() {
   return (
     <div>
       <Topbar
-        title="Demandes de Création de Compte"
-        subtitle="Examen des entreprises de transport en attente de validation réglementaire"
+        title="Account Creation Requests"
+        subtitle="Review of transport companies pending regulatory validation"
         onMenu={openMobileMenu}
       />
 
       <div className="p-6 space-y-6">
         <div className="flex items-center justify-between">
           <p className="text-sm text-slate-400">
-            {(requests || []).length} demande(s) en attente d'approbation
+            {(requests || []).length} request(s) pending approval
           </p>
           <Button variant="outline" size="sm" onClick={load} loading={loading}>
-            <RefreshCw className="h-3.5 w-3.5 mr-1" /> Actualiser
+            <RefreshCw className="h-3.5 w-3.5 mr-1" /> Refresh
           </Button>
         </div>
 
@@ -152,8 +152,8 @@ export default function AdminRequestsPage() {
           <Card className="p-8 border-slate-800 bg-[#0f172a]">
             <EmptyState
               icon={<CheckCircle2 className="h-10 w-10 text-emerald-400" />}
-              title="Toutes les demandes ont été traitées"
-              description="Aucun dossier d'adhésion d'entreprise n'est en attente actuellement."
+              title="All requests have been processed"
+              description="No company membership files are currently pending."
             />
           </Card>
         ) : (
@@ -169,18 +169,18 @@ export default function AdminRequestsPage() {
                     <div>
                       <h3 className="text-base font-bold text-white">{org.name}</h3>
                       <p className="text-xs text-slate-400 flex items-center gap-1">
-                        <MapPin className="h-3 w-3 text-slate-500" /> {org.city}, {org.country} • RC : <span className="font-mono text-slate-300">{org.legal_id}</span>
+                        <MapPin className="h-3 w-3 text-slate-500" /> {org.city}, {org.country} • RC: <span className="font-mono text-slate-300">{org.legal_id}</span>
                       </p>
                     </div>
                   </div>
-                  <Badge variant="warning">En attente</Badge>
+                  <Badge variant="warning">Pending</Badge>
                 </div>
 
                 {/* Manager info */}
                 {org.manager && (
                   <div className="rounded-xl border border-slate-800/80 bg-slate-900/60 p-3.5 text-xs space-y-1.5">
                     <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                      Responsable désigné
+                      Designated Manager
                     </p>
                     <p className="font-medium text-slate-200">
                       {org.manager.first_name} {org.manager.last_name}
@@ -202,7 +202,7 @@ export default function AdminRequestsPage() {
                 {/* Footer and Actions */}
                 <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800">
                   <span className="text-xs text-slate-500 flex items-center gap-1">
-                    <Clock className="h-3.5 w-3.5" /> Reçu le {new Date(org.created_at).toLocaleDateString("fr-FR")}
+                    <Clock className="h-3.5 w-3.5" /> Received on {new Date(org.created_at).toLocaleDateString("en-US")}
                   </span>
 
                   <div className="flex items-center gap-2">
@@ -211,7 +211,7 @@ export default function AdminRequestsPage() {
                       size="sm"
                       onClick={() => openInspect(org.id)}
                     >
-                      <Eye className="h-3.5 w-3.5 mr-1" /> Examiner ({org.documents_count} doc)
+                      <Eye className="h-3.5 w-3.5 mr-1" /> Inspect ({org.documents_count} doc)
                     </Button>
                     <Button
                       variant="figma"
@@ -219,14 +219,14 @@ export default function AdminRequestsPage() {
                       onClick={() => approve(org.id, org.name)}
                       loading={acting}
                     >
-                      <UserCheck className="h-3.5 w-3.5 mr-1" /> Approuver
+                      <UserCheck className="h-3.5 w-3.5 mr-1" /> Approve
                     </Button>
                     <Button
                       variant="danger"
                       size="sm"
                       onClick={() => setRejectModal(org)}
                     >
-                      <XCircle className="h-3.5 w-3.5 mr-1" /> Rejeter
+                      <XCircle className="h-3.5 w-3.5 mr-1" /> Reject
                     </Button>
                   </div>
                 </div>
@@ -239,36 +239,36 @@ export default function AdminRequestsPage() {
       {/* Inspection Modal */}
       {selectedOrg && (
         <Modal
-          title={`Dossier : ${selectedOrg.name}`}
-          description="Inspection des pièces justificatives et validation réglementaire"
+          title={`File: ${selectedOrg.name}`}
+          description="Inspection of supporting documents and regulatory validation"
           onClose={() => setSelectedOrg(null)}
         >
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3 text-xs bg-slate-900/60 p-3 rounded-xl border border-slate-800">
               <div>
-                <span className="text-slate-500">Pays / Ville :</span>
+                <span className="text-slate-500">Country / City:</span>
                 <p className="font-semibold text-white">{selectedOrg.country}, {selectedOrg.city}</p>
               </div>
               <div>
-                <span className="text-slate-500">Identifiant Légal (RC) :</span>
+                <span className="text-slate-500">Legal ID (RC):</span>
                 <p className="font-semibold text-white font-mono">{selectedOrg.legal_id}</p>
               </div>
               <div>
-                <span className="text-slate-500">Email d'entreprise :</span>
+                <span className="text-slate-500">Company Email:</span>
                 <p className="font-semibold text-white">{selectedOrg.email}</p>
               </div>
               <div>
-                <span className="text-slate-500">Téléphone :</span>
+                <span className="text-slate-500">Phone:</span>
                 <p className="font-semibold text-white">{selectedOrg.phone}</p>
               </div>
             </div>
 
             <div>
               <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
-                Documents Déposés
+                Uploaded Documents
               </h4>
               {selectedOrg.documents.length === 0 ? (
-                <p className="text-xs text-slate-500 italic">Aucun document téléversé pour cette entreprise.</p>
+                <p className="text-xs text-slate-500 italic">No documents uploaded for this company.</p>
               ) : (
                 <div className="space-y-2">
                   {selectedOrg.documents.map((d) => (
@@ -281,11 +281,11 @@ export default function AdminRequestsPage() {
                         <div>
                           <p className="font-semibold text-slate-200">
                             {d.document_type === "COMPANY_CERTIFICATE"
-                              ? "Certificat d'immatriculation / RC"
-                              : "Pièce d'identité du responsable"}
+                              ? "Certificate of Incorporation / RC"
+                              : "Manager ID"}
                           </p>
                           <p className="text-[10px] text-slate-500">
-                            Déposé le {new Date(d.uploaded_at).toLocaleDateString("fr-FR")}
+                            Uploaded on {new Date(d.uploaded_at).toLocaleDateString("en-US")}
                           </p>
                         </div>
                       </div>
@@ -295,7 +295,7 @@ export default function AdminRequestsPage() {
                         rel="noreferrer"
                         className="inline-flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-1 text-xs font-medium text-slate-200 hover:bg-slate-700"
                       >
-                        <Download className="h-3 w-3" /> Télécharger
+                        <Download className="h-3 w-3" /> Download
                       </a>
                     </div>
                   ))}
@@ -305,7 +305,7 @@ export default function AdminRequestsPage() {
 
             <div className="flex justify-end gap-3 pt-3 border-t border-slate-800">
               <Button variant="outline" onClick={() => setSelectedOrg(null)}>
-                Fermer
+                Close
               </Button>
               <Button
                 variant="danger"
@@ -314,14 +314,14 @@ export default function AdminRequestsPage() {
                   setSelectedOrg(null);
                 }}
               >
-                Rejeter le dossier
+                Reject file
               </Button>
               <Button
                 variant="figma"
                 loading={acting}
                 onClick={() => approve(selectedOrg.id, selectedOrg.name)}
               >
-                <CheckCircle2 className="h-4 w-4 mr-1" /> Valider & Activer le compte
+                <CheckCircle2 className="h-4 w-4 mr-1" /> Validate & Activate account
               </Button>
             </div>
           </div>
@@ -331,24 +331,24 @@ export default function AdminRequestsPage() {
       {/* Rejection Modal */}
       {rejectModal && (
         <Modal
-          title={`Rejeter la demande : ${rejectModal.name}`}
-          description="Veuillez spécifier le motif de refus qui sera notifié à l'entreprise."
+          title={`Reject request: ${rejectModal.name}`}
+          description="Please specify the reason for rejection, which will be notified to the company."
           onClose={() => setRejectModal(null)}
         >
           <div className="space-y-4">
             <textarea
               rows={3}
-              placeholder="Ex : Document du registre du commerce illisible, numéro RC non correspondant..."
+              placeholder="E.g., Illegible commercial register document, mismatched RC number..."
               value={rejectReason}
               onChange={(e) => setRejectReason(e.target.value)}
               className="w-full rounded-xl border border-slate-800 bg-[#0a101d] p-3 text-xs text-slate-200 placeholder:text-slate-500 outline-none focus:border-red-500"
             />
             <div className="flex justify-end gap-3">
               <Button variant="outline" onClick={() => setRejectModal(null)}>
-                Annuler
+                Cancel
               </Button>
               <Button variant="danger" loading={acting} onClick={reject}>
-                Confirmer le refus
+                Confirm rejection
               </Button>
             </div>
           </div>

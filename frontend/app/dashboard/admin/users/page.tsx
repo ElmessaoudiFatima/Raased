@@ -65,7 +65,7 @@ export default function AdminUsersPage() {
     setLoading(true);
     get<{ users: AdminUser[] }>("/admin/users")
       .then((d) => setUsers(d.users))
-      .catch(() => notify("Impossible de charger les utilisateurs.", "error"))
+      .catch(() => notify("Unable to load users.", "error"))
       .finally(() => setLoading(false));
   };
 
@@ -76,10 +76,10 @@ export default function AdminUsersPage() {
     const action = user.is_active ? "disable" : "enable";
     try {
       await patch(`/admin/users/${user.id}/status`, { action });
-      notify(action === "enable" ? "Compte réactivé." : "Compte désactivé.");
+      notify(action === "enable" ? "Account reactivated." : "Account disabled.");
       load();
     } catch (err) {
-      notify(err instanceof Error ? err.message : "Erreur de mise à jour.", "error");
+      notify(err instanceof Error ? err.message : "Update error.", "error");
     } finally {
       setActionId(null);
     }
@@ -90,11 +90,11 @@ export default function AdminUsersPage() {
     setDeleting(true);
     try {
       await del(`/admin/users/${deleteTarget.id}`);
-      notify(`Compte de ${deleteTarget.first_name} ${deleteTarget.last_name} supprimé.`);
+      notify(`Account of ${deleteTarget.first_name} ${deleteTarget.last_name} deleted.`);
       setDeleteTarget(null);
       load();
     } catch (err) {
-      notify(err instanceof Error ? err.message : "Impossible de supprimer.", "error");
+      notify(err instanceof Error ? err.message : "Unable to delete.", "error");
     } finally {
       setDeleting(false);
     }
@@ -122,8 +122,8 @@ export default function AdminUsersPage() {
   return (
     <div>
       <Topbar
-        title="Gestion des Comptes Utilisateurs"
-        subtitle="Contrôle d'accès, activation/désactivation et administration des rôles"
+        title="User Account Management"
+        subtitle="Access control, activation/deactivation and role administration"
         onMenu={openMobileMenu}
       />
 
@@ -134,7 +134,7 @@ export default function AdminUsersPage() {
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <input
               type="text"
-              placeholder="Rechercher par nom, email, entreprise..."
+              placeholder="Search by name, email, company..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full rounded-xl border border-slate-800 bg-[#0f172a] pl-10 pr-4 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
@@ -148,7 +148,7 @@ export default function AdminUsersPage() {
               onChange={(e) => setRoleFilter(e.target.value)}
               className="rounded-xl border border-slate-800 bg-[#0f172a] px-3 py-2 text-xs font-semibold text-slate-300 outline-none transition focus:border-blue-500"
             >
-              <option value="ALL">Tous les rôles</option>
+              <option value="ALL">All roles</option>
               <option value="ADMIN">ADMIN</option>
               <option value="MANAGER">MANAGER</option>
               <option value="DRIVER">DRIVER</option>
@@ -160,10 +160,10 @@ export default function AdminUsersPage() {
               onChange={(e) => setStatusFilter(e.target.value)}
               className="rounded-xl border border-slate-800 bg-[#0f172a] px-3 py-2 text-xs font-semibold text-slate-300 outline-none transition focus:border-blue-500"
             >
-              <option value="ALL">Tous les statuts</option>
-              <option value="ACTIVE">Actif</option>
-              <option value="DISABLED">Désactivé</option>
-              <option value="INVITED">Invité</option>
+              <option value="ALL">All statuses</option>
+              <option value="ACTIVE">Active</option>
+              <option value="DISABLED">Disabled</option>
+              <option value="INVITED">Invited</option>
             </select>
 
             <Button variant="outline" size="sm" onClick={load} loading={loading}>
@@ -181,20 +181,20 @@ export default function AdminUsersPage() {
           ) : filtered.length === 0 ? (
             <EmptyState
               icon={<Users className="h-8 w-8" />}
-              title="Aucun utilisateur trouvé"
-              description="Modifiez vos critères de recherche ou vos filtres."
+              title="No users found"
+              description="Modify your search criteria or filters."
             />
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm text-slate-300">
                 <thead className="border-b border-slate-800 bg-slate-900/60 text-xs font-semibold uppercase tracking-wider text-slate-400">
                   <tr>
-                    <th className="px-5 py-3.5">Utilisateur</th>
-                    <th className="px-4 py-3.5">Rôle</th>
-                    <th className="px-4 py-3.5">Organisation</th>
+                    <th className="px-5 py-3.5">User</th>
+                    <th className="px-4 py-3.5">Role</th>
+                    <th className="px-4 py-3.5">Organization</th>
                     <th className="px-4 py-3.5">Contact</th>
-                    <th className="px-4 py-3.5">Statut</th>
-                    <th className="px-4 py-3.5">Créé le</th>
+                    <th className="px-4 py-3.5">Status</th>
+                    <th className="px-4 py-3.5">Created</th>
                     <th className="px-5 py-3.5 text-right">Actions</th>
                   </tr>
                 </thead>
@@ -222,7 +222,7 @@ export default function AdminUsersPage() {
                                 {u.first_name} {u.last_name}
                                 {isSelf && (
                                   <span className="ml-1.5 rounded bg-blue-500/20 px-1.5 py-0.5 text-[10px] font-bold text-blue-400">
-                                    Vous
+                                    You
                                   </span>
                                 )}
                               </p>
@@ -257,7 +257,7 @@ export default function AdminUsersPage() {
                               </p>
                             </div>
                           ) : (
-                            <span className="text-xs text-slate-500 italic">Plateforme centrale</span>
+                            <span className="text-xs text-slate-500 italic">Central platform</span>
                           )}
                         </td>
 
@@ -273,16 +273,16 @@ export default function AdminUsersPage() {
 
                         <td className="px-4 py-3.5">
                           {u.account_status === "INVITED" ? (
-                            <Badge variant="warning">Invité</Badge>
+                            <Badge variant="warning">Invited</Badge>
                           ) : u.is_active ? (
-                            <Badge variant="success">Actif</Badge>
+                            <Badge variant="success">Active</Badge>
                           ) : (
-                            <Badge variant="danger">Désactivé</Badge>
+                            <Badge variant="danger">Disabled</Badge>
                           )}
                         </td>
 
                         <td className="px-4 py-3.5 text-xs text-slate-500">
-                          {new Date(u.created_at).toLocaleDateString("fr-FR")}
+                          {new Date(u.created_at).toLocaleDateString("en-US")}
                         </td>
 
                         <td className="px-5 py-3.5 text-right">
@@ -291,7 +291,7 @@ export default function AdminUsersPage() {
                             <button
                               disabled={isSelf || actionId === u.id}
                               onClick={() => toggleStatus(u)}
-                              title={u.is_active ? "Désactiver le compte" : "Activer le compte"}
+                              title={u.is_active ? "Disable account" : "Enable account"}
                               className={[
                                 "rounded-lg p-1.5 transition",
                                 u.is_active
@@ -307,7 +307,7 @@ export default function AdminUsersPage() {
                             <button
                               disabled={isSelf}
                               onClick={() => setDeleteTarget(u)}
-                              title="Supprimer définitivement"
+                              title="Permanently delete"
                               className={[
                                 "rounded-lg p-1.5 text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition",
                                 isSelf ? "opacity-30 cursor-not-allowed" : "",
@@ -330,16 +330,16 @@ export default function AdminUsersPage() {
       {/* Delete Confirmation Modal */}
       {deleteTarget && (
         <Modal
-          title="Confirmer la suppression"
-          description={`Êtes-vous sûr de vouloir supprimer définitivement le compte de ${deleteTarget.first_name} ${deleteTarget.last_name} (${deleteTarget.email}) ? Cette action est irréversible.`}
+          title="Confirm deletion"
+          description={`Are you sure you want to permanently delete the account of ${deleteTarget.first_name} ${deleteTarget.last_name} (${deleteTarget.email})? This action cannot be undone.`}
           onClose={() => setDeleteTarget(null)}
         >
           <div className="flex justify-end gap-3 pt-3">
             <Button variant="outline" onClick={() => setDeleteTarget(null)}>
-              Annuler
+              Cancel
             </Button>
             <Button variant="danger" loading={deleting} onClick={confirmDelete}>
-              <Trash2 className="h-4 w-4 mr-1" /> Supprimer définitivement
+              <Trash2 className="h-4 w-4 mr-1" /> Permanently delete
             </Button>
           </div>
         </Modal>

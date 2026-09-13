@@ -419,6 +419,23 @@ def build_user_prompt(state: AgentState, evaluation: RuleEvaluation) -> str:
     network = state.get("network_condition") or {}
     known = state.get("known_context") or {}
     incident = state.get("incident") or {}
+    security_alerts = state.get("unresolved_security_alerts")
+
+    if security_alerts is None or not isinstance(security_alerts, list):
+        security_alerts_text = UNAVAILABLE
+    elif not security_alerts:
+        security_alerts_text = "Aucune alerte non résolue confirmée"
+    else:
+        security_alerts_text = "; ".join(
+            "type {type}, sévérité {severity}, statut {status}, créée {created_at}".format(
+                type=_fmt(alert.get("check_type")),
+                severity=_fmt(alert.get("severity")),
+                status=_fmt(alert.get("status")),
+                created_at=_fmt(alert.get("created_at")),
+            )
+            for alert in security_alerts
+            if isinstance(alert, dict)
+        ) or UNAVAILABLE
 
     # Facteurs disponibles / indisponibles, extraits du calcul réel des règles.
     available_factors = [
@@ -446,6 +463,7 @@ def build_user_prompt(state: AgentState, evaluation: RuleEvaluation) -> str:
         "",
         "# POSITION ET GÉOGRAPHIE",
         f"Dernière position connue : {_fmt_location(state.get('current_location'))}",
+        f"Zone de localisation réseau CAMARA : {_fmt(state.get('network_location_area'))}",
         f"Corridor : {_fmt(corridor.get('name'))} "
         f"({_fmt(corridor.get('origin'))} -> {_fmt(corridor.get('destination'))}), "
         f"risque structurel {_fmt(corridor.get('risk_level'))}",
@@ -476,6 +494,7 @@ def build_user_prompt(state: AgentState, evaluation: RuleEvaluation) -> str:
         "# SÉCURITÉ / CHAÎNE DE CONFIANCE",
         f"Statut agrégé : {_fmt(state.get('security_check_status'))}",
         f"Détail des contrôles : {_fmt(state.get('security_checks'))}",
+        f"Alertes de sécurité non résolues : {security_alerts_text}",
         "",
         "# ÉVALUATION DÉTERMINISTE (FAITS À EXPLIQUER, NON NÉGOCIABLES)",
         f"Décision retenue : {evaluation.decision}",

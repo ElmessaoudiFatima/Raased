@@ -606,6 +606,18 @@ def compute_risk_score(state: AgentState) -> tuple[Optional[float], dict[str, An
 # ===========================================================================
 
 
+def has_unresolved_security_alert(state: AgentState) -> bool:
+    """Indique si PostgreSQL a signalé une alerte de sécurité non résolue.
+
+    Le test porte uniquement sur la présence de lignes déjà filtrées par le
+    noeud d'enrichissement avec ``security_alerts.resolved_at IS NULL``. Il ne
+    déduit rien de ``status`` ou ``severity`` : ces deux colonnes sont des
+    chaînes sans contrainte ENUM dans le schéma.
+    """
+    alerts = state.get("unresolved_security_alerts")
+    return isinstance(alerts, list) and len(alerts) > 0
+
+
 def classify_incident(state: AgentState) -> tuple[Optional[str], Optional[str]]:
     """
     Détermine (type, sévérité) de l'incident à partir des seules données réelles.
@@ -621,6 +633,12 @@ def classify_incident(state: AgentState) -> tuple[Optional[str], Optional[str]]:
     signifie « je n'ai rien pu qualifier », pas « aucun incident ».
     """
     # 1. Sécurité : le seul cas où l'incident ne vient pas du terrain.
+    # Une SecurityAlert non résolue est un signal persistant, y compris lorsque
+    # security_check_id est NULL ; on applique le même traitement prudent qu'un
+    # contrôle de confiance explicitement en échec.
+    if has_unresolved_security_alert(state):
+        return IncidentType.SECURITY_ANOMALY, Severity.CRITICAL
+
     if normalize_upper(state.get("security_check_status"), SecurityStatus.ALL) == SecurityStatus.FAILED:
         return IncidentType.SECURITY_ANOMALY, Severity.CRITICAL
 
@@ -800,7 +818,8 @@ def should_notify_manager(state: AgentState, risk_level: Optional[str]) -> bool:
       * cargaison HIGH/CRITICAL dès qu'un incident est confirmé, même à risque
         faible (le manager doit garder la visibilité sur ses cargaisons
         sensibles) ; ou
-      * contrôle de sécurité en échec ou en attente.
+      * contrôle de sécurité en échec ou en attente, ou alerte de sécurité non
+        résolue.
 
     Volontairement plus permissive que les règles d'action réseau : notifier ne
     coûte rien, agir sur le réseau coûte de l'argent.
@@ -813,7 +832,7 @@ def should_notify_manager(state: AgentState, risk_level: Optional[str]) -> bool:
         return True
 
     security = normalize_upper(state.get("security_check_status"), SecurityStatus.ALL)
-    return security in (SecurityStatus.FAILED, SecurityStatus.PENDING)
+    return has_unresolved_security_alert(state) or security in (SecurityStatus.FAILED, SecurityStatus.PENDING)
 
 
 # ===========================================================================
@@ -831,9 +850,9 @@ def requires_human_approval(state: AgentState, decision: str, risk_level: Option
       * H2 — toute demande de tranche réseau dédiée, quelle que soit la
              cargaison : engagement long et coûteux ;
       * H3 — risque CRITIQUE avec une action coûteuse ;
-      * H4 — soupçon de compromission (contrôle de confiance en échec) : on ne
-             laisse jamais l'agent agir seul sur un tracker potentiellement
-             détourné ;
+      * H4 — soupçon de compromission (contrôle de confiance en échec ou alerte
+             de sécurité non résolue) : on ne laisse jamais l'agent agir seul
+             sur un tracker potentiellement détourné ;
       * H5 — couverture de données insuffisante alors qu'une action coûteuse est
              envisagée : agir sur une image partielle exige un arbitrage humain.
 
@@ -844,7 +863,7 @@ def requires_human_approval(state: AgentState, decision: str, risk_level: Option
     security = normalize_upper(state.get("security_check_status"), SecurityStatus.ALL)
     coverage = state.get("risk_data_coverage")
 
-    if security == SecurityStatus.FAILED:
+    if has_unresolved_security_alert(state) or security == SecurityStatus.FAILED:
         return True  # H4
     if decision == Decision.REQUEST_NETWORK_SLICE:
         return True  # H2
@@ -945,7 +964,7 @@ def evaluate(state: AgentState) -> RuleEvaluation:
 
       R-00  cargaison dans un statut terminal (livrée/annulée) -> MONITOR
       R-01  information BLOQUANTE absente                      -> REQUEST_MORE_INFORMATION
-      R-02  contrôle de confiance en ÉCHEC                     -> HUMAN_APPROVAL
+      R-02  contrôle en échec / alerte sécurité non résolue    -> HUMAN_APPROVAL
       R-03  couverture de données insuffisante                 -> REQUEST_MORE_INFORMATION
       R-04  aucun score calculable                             -> REQUEST_MORE_INFORMATION
       R-05  tranche réseau justifiée                           -> REQUEST_NETWORK_SLICE
@@ -1013,6 +1032,24 @@ def evaluate(state: AgentState) -> RuleEvaluation:
         return build(Decision.REQUEST_MORE_INFORMATION)
 
     # --- R-02 : soupçon de compromission -> arbitrage humain, jamais d'automatisme.
+    if has_unresolved_security_alert(state):
+        trace.append("R-02b:alerte_securite_non_resolue:validation_humaine")
+        return RuleEvaluation(
+            decision=Decision.HUMAN_APPROVAL,
+            risk_score=risk_score,
+            risk_level=risk_level,
+            risk_factors=risk_factors,
+            risk_data_coverage=coverage,
+            incident_type=incident_type,
+            incident_severity=incident_severity,
+            requires_human_approval=True,
+            qod_required=False,
+            network_slice_required=False,
+            confidence=confidence,
+            missing_information=missing,
+            rule_trace=trace,
+        )
+
     if normalize_upper(state.get("security_check_status"), SecurityStatus.ALL) == SecurityStatus.FAILED:
         trace.append("R-02:security_check=FAILED:escalade_humaine")
         return build(Decision.HUMAN_APPROVAL)
@@ -1085,6 +1122,7 @@ __all__ = [
     "TerminalCargoStatus",
     "aggregate_security_status",
     "classify_incident",
+    "has_unresolved_security_alert",
     "classify_risk_level",
     "collect_missing_information",
     "compute_confidence",

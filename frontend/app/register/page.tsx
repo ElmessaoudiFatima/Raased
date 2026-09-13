@@ -26,11 +26,11 @@ import { homeRoute, setSession, type User } from "@/lib/auth";
 import { MENA_COUNTRIES, getCountryByName, MenaCountry } from "@/lib/menaData";
 
 const steps = [
-  { title: "Entreprise", subtitle: "Société" },
-  { title: "Responsable", subtitle: "Profil" },
-  { title: "Vérification", subtitle: "Code OTP" },
-  { title: "Sécurité", subtitle: "Mot de passe" },
-  { title: "Documents", subtitle: "Optionnel" },
+  { title: "Company", subtitle: "Organization" },
+  { title: "Manager", subtitle: "Profile" },
+  { title: "Verification", subtitle: "OTP Code" },
+  { title: "Security", subtitle: "Password" },
+  { title: "Documents", subtitle: "Optional" },
 ];
 
 interface OrgForm {
@@ -61,7 +61,7 @@ export default function RegisterPage() {
   const [cooldown, setCooldown] = useState(0);
   const [devNotice, setDevNotice] = useState("");
 
-  // Default country: Maroc
+  // Default country: Morocco
   const defaultCountry = MENA_COUNTRIES[0];
 
   const [selectedCountry, setSelectedCountry] = useState<MenaCountry>(defaultCountry);
@@ -106,7 +106,6 @@ export default function RegisterPage() {
 
     // Update phone prefix helper
     const updatePhonePrefix = (currentPhone: string, newPrefix: string) => {
-      // If phone is empty or just starts with +, replace prefix
       const match = currentPhone.match(/^\+\d+\s*(.*)$/);
       if (match) {
         return newPrefix + " " + match[1];
@@ -178,7 +177,7 @@ export default function RegisterPage() {
       setStep(2);
       setTimeout(() => refs.current[0]?.focus(), 100);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Impossible de créer le compte.");
+      setError(err instanceof Error ? err.message : "Failed to create account.");
     } finally {
       setLoading(false);
     }
@@ -194,7 +193,7 @@ export default function RegisterPage() {
       }
       startCooldown();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Impossible de renvoyer le code.");
+      setError(err instanceof Error ? err.message : "Failed to resend code.");
     } finally {
       setResending(false);
     }
@@ -211,7 +210,7 @@ export default function RegisterPage() {
       setPasswordToken(data.password_token);
       setStep(3);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Code incorrect.");
+      setError(err instanceof Error ? err.message : "Invalid code.");
     } finally {
       setLoading(false);
     }
@@ -232,7 +231,7 @@ export default function RegisterPage() {
       setSession(data.access_token, data.user);
       setStep(4);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Impossible de finaliser le compte.");
+      setError(err instanceof Error ? err.message : "Failed to finalize account.");
     } finally {
       setLoading(false);
     }
@@ -250,7 +249,7 @@ export default function RegisterPage() {
       }
       router.push(homeRoute("MANAGER"));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Échec de l'envoi des documents.");
+      setError(err instanceof Error ? err.message : "Failed to upload documents.");
     } finally {
       setLoading(false);
     }
@@ -303,7 +302,7 @@ export default function RegisterPage() {
     mgr.email.includes("@");
 
   const downloadLabel = (file: File | null) =>
-    file ? file.name : "Aucun fichier choisi";
+    file ? file.name : "No file chosen";
 
   return (
     <AuthShell maxWidth="max-w-3xl">
@@ -311,15 +310,15 @@ export default function RegisterPage() {
         href="/login"
         className="mb-5 inline-flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-blue-400 transition"
       >
-        <ArrowLeft className="h-3.5 w-3.5" /> Retour à la connexion
+        <ArrowLeft className="h-3.5 w-3.5" /> Back to login
       </Link>
 
       <div className="mb-6">
         <h2 className="text-2xl font-bold tracking-tight text-white">
-          Créer un compte entreprise
+          Create Company Account
         </h2>
         <p className="mt-1 text-xs text-slate-400">
-          Plateforme de résilience et de pilotage logistique des corridors MENA
+          Resilience & logistics management platform for MENA corridors
         </p>
       </div>
 
@@ -327,26 +326,26 @@ export default function RegisterPage() {
         <Stepper steps={steps} current={step} />
       </div>
 
-      {/* STEP 0: ENTREPRISE */}
+      {/* STEP 0: COMPANY */}
       {step === 0 && (
         <div className="space-y-4">
           <div className="flex items-center gap-2 border-b border-slate-800 pb-2 text-sm font-semibold text-blue-400">
-            <Building2 className="h-4 w-4" /> 1. Informations de l'entreprise
+            <Building2 className="h-4 w-4" /> 1. Company Information
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Input
-              label="Nom de l'entreprise"
+              label="Company Name"
               value={org.name}
               onChange={setOrgField("name")}
-              placeholder="Ex : LogiTrans Maghreb"
+              placeholder="e.g. LogiTrans MENA"
               required
             />
             <Input
-              label="ICE / Registre Commerce (RC)"
+              label="Commercial Register / Tax ID"
               value={org.legal_id}
               onChange={setOrgField("legal_id")}
-              placeholder="Ex : 002145896000034"
+              placeholder="e.g. 002145896000034"
               required
             />
           </div>
@@ -355,7 +354,7 @@ export default function RegisterPage() {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1.5 flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-slate-300">
-                <Globe className="h-3 w-3 text-blue-400" /> Pays (Région MENA)
+                <Globe className="h-3 w-3 text-blue-400" /> Country (MENA Region)
               </label>
               <select
                 value={org.country}
@@ -372,7 +371,7 @@ export default function RegisterPage() {
 
             <div>
               <label className="mb-1.5 flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-slate-300">
-                <MapPin className="h-3 w-3 text-blue-400" /> Ville
+                <MapPin className="h-3 w-3 text-blue-400" /> City
               </label>
               <select
                 value={org.city}
@@ -391,7 +390,7 @@ export default function RegisterPage() {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1.5 flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-slate-300">
-                <Phone className="h-3 w-3 text-blue-400" /> Téléphone de l'entreprise
+                <Phone className="h-3 w-3 text-blue-400" /> Company Phone
               </label>
               <input
                 type="text"
@@ -405,13 +404,13 @@ export default function RegisterPage() {
 
             <div>
               <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-slate-300">
-                E-mail de contact entreprise
+                Company Contact Email
               </label>
               <input
                 type="email"
                 value={org.email}
                 onChange={setOrgField("email")}
-                placeholder="contact@entreprise.com"
+                placeholder="contact@company.com"
                 required
                 className="w-full rounded-xl border border-slate-700/80 bg-[#0a101d] px-3.5 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
               />
@@ -419,17 +418,17 @@ export default function RegisterPage() {
           </div>
 
           <Input
-            label="Site web (optionnel)"
+            label="Website (optional)"
             value={org.website}
             onChange={setOrgField("website")}
             placeholder="https://..."
           />
 
           <Textarea
-            label="Adresse du siège"
+            label="Headquarters Address"
             value={org.address}
             onChange={setOrgField("address")}
-            placeholder="Adresse complète du siège ou centre logistique"
+            placeholder="Full headquarters or logistics center address"
             required
           />
 
@@ -446,28 +445,28 @@ export default function RegisterPage() {
             disabled={!companyValid}
             className="w-full py-3"
           >
-            Étape suivante (Responsable) <ArrowRight className="h-4 w-4 ml-1" />
+            Next Step (Manager) <ArrowRight className="h-4 w-4 ml-1" />
           </Button>
         </div>
       )}
 
-      {/* STEP 1: RESPONSABLE */}
+      {/* STEP 1: MANAGER */}
       {step === 1 && (
         <div className="space-y-4">
           <div className="flex items-center gap-2 border-b border-slate-800 pb-2 text-sm font-semibold text-blue-400">
-            <UserRound className="h-4 w-4" /> 2. Responsable du compte (Manager principal)
+            <UserRound className="h-4 w-4" /> 2. Account Manager (Primary Manager)
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Input
-              label="Prénom"
+              label="First Name"
               value={mgr.first_name}
               onChange={setMgrField("first_name")}
               placeholder="Karim"
               required
             />
             <Input
-              label="Nom"
+              label="Last Name"
               value={mgr.last_name}
               onChange={setMgrField("last_name")}
               placeholder="El Amrani"
@@ -476,17 +475,17 @@ export default function RegisterPage() {
           </div>
 
           <Input
-            label="Fonction / Poste"
+            label="Job Title / Role"
             value={mgr.job_title}
             onChange={setMgrField("job_title")}
-            placeholder="Directeur des Opérations / Flotte"
+            placeholder="Operations / Fleet Director"
             required
           />
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1.5 flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-slate-300">
-                <Phone className="h-3 w-3 text-blue-400" /> Téléphone mobile
+                <Phone className="h-3 w-3 text-blue-400" /> Mobile Phone
               </label>
               <input
                 type="text"
@@ -500,13 +499,13 @@ export default function RegisterPage() {
 
             <div>
               <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-slate-300">
-                E-mail professionnel personnel
+                Personal Professional Email
               </label>
               <input
                 type="email"
                 value={mgr.email}
                 onChange={setMgrField("email")}
-                placeholder="k.elamrani@entreprise.com"
+                placeholder="manager@company.com"
                 required
                 className="w-full rounded-xl border border-slate-700/80 bg-[#0a101d] px-3.5 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
               />
@@ -514,7 +513,7 @@ export default function RegisterPage() {
           </div>
 
           <div className="rounded-xl border border-blue-500/20 bg-blue-950/20 p-3 text-xs text-blue-300">
-            <span className="font-semibold">Note importante :</span> Le code de vérification à 6 chiffres sera envoyé directement à cet email.
+            <span className="font-semibold">Important note:</span> The 6-digit verification code will be sent directly to this email.
           </div>
 
           {error && (
@@ -530,7 +529,7 @@ export default function RegisterPage() {
               onClick={() => setStep(0)}
               className="flex-1 py-3"
             >
-              <ArrowLeft className="h-4 w-4 mr-1" /> Précédent
+              <ArrowLeft className="h-4 w-4 mr-1" /> Previous
             </Button>
             <Button
               type="button"
@@ -540,7 +539,7 @@ export default function RegisterPage() {
               disabled={!mgrValid}
               className="flex-1 py-3"
             >
-              Créer le compte & envoyer le code <ArrowRight className="h-4 w-4 ml-1" />
+              Create Account & Send Code <ArrowRight className="h-4 w-4 ml-1" />
             </Button>
           </div>
         </div>
@@ -554,9 +553,9 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <h3 className="text-lg font-bold text-white">Vérification de l'e-mail</h3>
+            <h3 className="text-lg font-bold text-white">Email Verification</h3>
             <p className="mt-1 text-xs text-slate-400">
-              Nous avons envoyé un code à 6 chiffres à <span className="font-semibold text-slate-200">{mgr.email}</span>
+              We sent a 6-digit code to <span className="font-semibold text-slate-200">{mgr.email}</span>
             </p>
           </div>
 
@@ -583,7 +582,7 @@ export default function RegisterPage() {
           {devNotice && (
             <div className="rounded-xl border border-emerald-500/30 bg-emerald-950/30 p-3.5 text-left text-xs text-emerald-300 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg">
               <div>
-                <p className="font-semibold text-emerald-200">Code de vérification (Simulation / Local) :</p>
+                <p className="font-semibold text-emerald-200">Verification code (Simulation / Local):</p>
                 <p className="font-mono text-base font-bold text-white tracking-widest mt-0.5">{devNotice}</p>
               </div>
               <button
@@ -595,7 +594,7 @@ export default function RegisterPage() {
                 }}
                 className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow transition whitespace-nowrap self-start sm:self-auto"
               >
-                Remplir automatiquement
+                Auto-fill
               </button>
             </div>
           )}
@@ -615,7 +614,7 @@ export default function RegisterPage() {
               disabled={code.length !== 6}
               className="w-full py-3"
             >
-              Valider le code <ArrowRight className="h-4 w-4 ml-1" />
+              Verify Code <ArrowRight className="h-4 w-4 ml-1" />
             </Button>
 
             <button
@@ -624,34 +623,34 @@ export default function RegisterPage() {
               disabled={resending || cooldown > 0}
               className="text-xs font-medium text-slate-400 hover:text-blue-400 disabled:opacity-50 transition"
             >
-              {cooldown > 0 ? `Renvoyer le code dans ${cooldown}s` : "Vous n'avez pas reçu le code ? Renvoyer"}
+              {cooldown > 0 ? `Resend code in ${cooldown}s` : "Didn't receive code? Resend"}
             </button>
           </div>
         </div>
       )}
 
-      {/* STEP 3: MOT DE PASSE */}
+      {/* STEP 3: PASSWORD */}
       {step === 3 && (
         <div className="space-y-4">
           <div className="flex items-center gap-2 border-b border-slate-800 pb-2 text-sm font-semibold text-blue-400">
-            <KeyRound className="h-4 w-4" /> 4. Sécurité du compte
+            <KeyRound className="h-4 w-4" /> 4. Account Security
           </div>
 
           <Input
-            label="Définir un mot de passe"
+            label="Set Password"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="8 caractères minimum"
+            placeholder="8 characters minimum"
             required
           />
 
           <Input
-            label="Confirmer le mot de passe"
+            label="Confirm Password"
             type="password"
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
-            placeholder="Retapez votre mot de passe"
+            placeholder="Repeat your password"
             required
           />
 
@@ -669,12 +668,12 @@ export default function RegisterPage() {
             disabled={password.length < 8 || password !== confirm}
             className="w-full py-3"
           >
-            Confirmer le mot de passe <ArrowRight className="h-4 w-4 ml-1" />
+            Confirm Password <ArrowRight className="h-4 w-4 ml-1" />
           </Button>
         </div>
       )}
 
-      {/* STEP 4: DOCUMENTS & FINALISATION */}
+      {/* STEP 4: DOCUMENTS & FINALIZATION */}
       {step === 4 && (
         <div className="space-y-5 text-center">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/20 text-emerald-400 ring-1 ring-emerald-500/30">
@@ -682,16 +681,16 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <h3 className="text-lg font-bold text-white">Compte configuré avec succès !</h3>
+            <h3 className="text-lg font-bold text-white">Account configured successfully!</h3>
             <p className="mt-1 text-xs text-slate-400">
-              Vous pouvez dès à présent ajouter les documents justificatifs de votre société pour validation par l'administrateur, ou passer cette étape.
+              You can now upload verification documents for administrator review, or skip this step.
             </p>
           </div>
 
           <div className="space-y-3 text-left">
             <div className="rounded-xl border border-slate-800 bg-[#0a101d] p-3.5">
               <label className="mb-1 block text-xs font-semibold text-slate-300">
-                Certificat d'immatriculation / RC (PDF, JPG)
+                Company Registration Certificate (PDF, JPG)
               </label>
               <input
                 type="file"
@@ -703,7 +702,7 @@ export default function RegisterPage() {
 
             <div className="rounded-xl border border-slate-800 bg-[#0a101d] p-3.5">
               <label className="mb-1 block text-xs font-semibold text-slate-300">
-                Pièce d'identité du responsable (CIN / Passeport)
+                Manager ID Document (Passport / National ID)
               </label>
               <input
                 type="file"
@@ -728,7 +727,7 @@ export default function RegisterPage() {
               disabled={loading}
               className="flex-1 py-3"
             >
-              Passer cette étape
+              Skip this step
             </Button>
             <Button
               type="button"
@@ -737,7 +736,7 @@ export default function RegisterPage() {
               loading={loading}
               className="flex-1 py-3"
             >
-              Finaliser & Accéder <ArrowRight className="h-4 w-4 ml-1" />
+              Finish & Continue <ArrowRight className="h-4 w-4 ml-1" />
             </Button>
           </div>
         </div>

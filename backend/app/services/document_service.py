@@ -42,7 +42,7 @@ def _sanitize_extension(filename: str) -> str:
     if ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Format de fichier non autorisé ({ext}). Formats acceptés : PDF, JPG, PNG.",
+            detail=f"Unsupported file format ({ext}). Allowed formats: PDF, JPG, PNG.",
         )
     return ext
 
@@ -55,7 +55,7 @@ async def validate_and_read_file(file: UploadFile) -> tuple[bytes, str]:
     if not file.filename:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Le fichier fourni ne possède pas de nom valide.",
+            detail="Provided file does not have a valid name.",
         )
 
     ext = _sanitize_extension(file.filename)
@@ -64,20 +64,20 @@ async def validate_and_read_file(file: UploadFile) -> tuple[bytes, str]:
     if file.content_type and file.content_type.lower() not in ALLOWED_MIME_TYPES:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Type MIME '{file.content_type}' non supporté. Formats acceptés : PDF, JPG, PNG.",
+            detail=f"MIME type '{file.content_type}' is not supported. Allowed formats: PDF, JPG, PNG.",
         )
 
     content = await file.read()
     if len(content) == 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Le fichier est vide.",
+            detail="File is empty.",
         )
 
     if len(content) > MAX_FILE_SIZE_BYTES:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"La taille du fichier ({len(content) / (1024 * 1024):.1f} Mo) dépasse la limite autorisée de 10 Mo.",
+            detail=f"File size ({len(content) / (1024 * 1024):.1f} MB) exceeds allowed limit of 10 MB.",
         )
 
     return content, ext
@@ -97,7 +97,7 @@ async def save_organization_document(
     if document_type not in VALID_DOCUMENT_TYPES:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Type de document invalide '{document_type}'. Valeurs permises : {list(VALID_DOCUMENT_TYPES)}",
+            detail=f"Invalid document type '{document_type}'. Allowed values: {list(VALID_DOCUMENT_TYPES)}",
         )
 
     # Vérifier que l'organisation existe
@@ -106,7 +106,7 @@ async def save_organization_document(
     if org is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Organisation introuvable.",
+            detail="Organization not found.",
         )
 
     content, ext = await validate_and_read_file(file)
@@ -166,6 +166,6 @@ def get_document_file_path(doc: OrganizationDocument) -> Path:
     if not path.exists():
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Le fichier demandé est introuvable sur le serveur.",
+            detail="Requested file was not found on server.",
         )
     return path

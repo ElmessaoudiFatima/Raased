@@ -1,4 +1,4 @@
-﻿"""
+"""
 Pydantic schemas for Cargo management (manager-scoped).
 """
 import uuid
@@ -8,12 +8,34 @@ from typing import Optional
 from pydantic import BaseModel
 
 
-# ─────────────────────────────────────────────
-# Cargo status values
-# ─────────────────────────────────────────────
-
 CARGO_STATUSES = {"PENDING", "IN_TRANSIT", "DELIVERED", "DELAYED", "CANCELLED", "ARCHIVED"}
 CARGO_CRITICALITIES = {"LOW", "MEDIUM", "HIGH", "CRITICAL"}
+
+
+# ─────────────────────────────────────────────
+# Sub-models for driver & tracker display
+# ─────────────────────────────────────────────
+
+class CargoDriverOut(BaseModel):
+    id: uuid.UUID
+    first_name: str
+    last_name: str
+    email: Optional[str] = None
+    phone: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class CargoTrackerOutInfo(BaseModel):
+    id: uuid.UUID
+    device_id: str
+    label: Optional[str] = None
+    vehicle_registration: Optional[str] = None
+    status: str
+
+    class Config:
+        from_attributes = True
 
 
 # ─────────────────────────────────────────────
@@ -21,13 +43,13 @@ CARGO_CRITICALITIES = {"LOW", "MEDIUM", "HIGH", "CRITICAL"}
 # ─────────────────────────────────────────────
 
 class CargoCreate(BaseModel):
-    """Payload to create a new cargo shipment."""
-    reference: Optional[str] = None        # Optional unique reference number
+    """Payload to create a new cargo shipment. Reference is auto-generated server-side."""
+    corridor_id: uuid.UUID                 # ✏️ le manager sélectionne un corridor existant
     type: str                              # e.g. "MERCHANDISE", "PHARMACEUTICALS", "FUEL"
     criticality: str = "MEDIUM"            # LOW | MEDIUM | HIGH | CRITICAL
-    origin: str
-    destination: str
-    deadline: Optional[datetime] = None    # Expected delivery deadline
+    deadline: Optional[datetime] = None
+    driver_id: Optional[uuid.UUID] = None
+    tracker_id: Optional[uuid.UUID] = None
 
 
 # ─────────────────────────────────────────────
@@ -35,8 +57,7 @@ class CargoCreate(BaseModel):
 # ─────────────────────────────────────────────
 
 class CargoStatusUpdate(BaseModel):
-    """Payload to update only the status of a cargo."""
-    status: str  # PENDING | IN_TRANSIT | DELIVERED | DELAYED | CANCELLED | ARCHIVED
+    status: str
 
 
 # ─────────────────────────────────────────────
@@ -44,14 +65,13 @@ class CargoStatusUpdate(BaseModel):
 # ─────────────────────────────────────────────
 
 class CargoUpdate(BaseModel):
-    """Payload to update cargo fields (all optional)."""
-    reference: Optional[str] = None
+    """Payload to update cargo fields (all optional). Reference is never editable."""
+    corridor_id: Optional[uuid.UUID] = None
     type: Optional[str] = None
     criticality: Optional[str] = None
-    origin: Optional[str] = None
-    destination: Optional[str] = None
     deadline: Optional[datetime] = None
-    status: Optional[str] = None
+    driver_id: Optional[uuid.UUID] = None
+    tracker_id: Optional[uuid.UUID] = None
 
 
 # ─────────────────────────────────────────────
@@ -62,15 +82,18 @@ class CargoOut(BaseModel):
     """Cargo response representation."""
     id: uuid.UUID
     organization_id: uuid.UUID
-    reference: Optional[str]
+    reference: str
     type: str
     criticality: str
     status: str
-    origin: str
-    destination: str
+    corridor_id: uuid.UUID
+    driver_id: Optional[uuid.UUID] = None
     deadline: Optional[datetime]
     created_at: datetime
     updated_at: datetime
+
+    driver: Optional[CargoDriverOut] = None
+    tracker: Optional[CargoTrackerOutInfo] = None
 
     class Config:
         from_attributes = True

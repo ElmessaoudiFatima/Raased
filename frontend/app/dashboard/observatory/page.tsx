@@ -12,8 +12,8 @@ export default function ObservatoryPage() {
   return (
     <div className="min-h-screen bg-[#0a101d] text-slate-100">
       <Topbar
-        title="Observatoire Dynamique"
-        subtitle="Supervision en temps réel des corridors logistiques et des signaux CAMARA"
+        title="Dynamic Observatory"
+        subtitle="Real-time supervision of logistics corridors and CAMARA network signals"
         onMenu={openMobileMenu}
       />
 

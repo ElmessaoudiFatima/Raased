@@ -42,7 +42,7 @@ export default function AdminAuditPage() {
     setLoading(true);
     get<{ logs: AuditLogItem[] }>("/admin/audit")
       .then((d) => setLogs(d.logs))
-      .catch(() => notify("Impossible de charger les journaux d'audit.", "error"))
+      .catch(() => notify("Unable to load audit logs.", "error"))
       .finally(() => setLoading(false));
   };
 
@@ -77,8 +77,8 @@ export default function AdminAuditPage() {
   return (
     <div>
       <Topbar
-        title="Journal d'Audit et Sécurité"
-        subtitle="Traçabilité immuable, événements CAMARA, authentification et conformité opérationnelle"
+        title="Audit Log & Security"
+        subtitle="Immutable traceability, CAMARA events, authentication and operational compliance"
         onMenu={openMobileMenu}
       />
 
@@ -89,7 +89,7 @@ export default function AdminAuditPage() {
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <input
               type="text"
-              placeholder="Filtrer par acteur, action, IP ou mot-clé..."
+              placeholder="Filter by actor, action, IP or keyword..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full rounded-xl border border-slate-800 bg-[#0f172a] pl-10 pr-4 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
@@ -102,16 +102,16 @@ export default function AdminAuditPage() {
               onChange={(e) => setActionFilter(e.target.value)}
               className="rounded-xl border border-slate-800 bg-[#0f172a] px-3 py-2 text-xs font-semibold text-slate-300 outline-none transition focus:border-blue-500"
             >
-              <option value="ALL">Toutes les actions</option>
-              <option value="AUTH">Authentification (AUTH)</option>
-              <option value="ORG">Organisations (ORG)</option>
-              <option value="USER">Comptes Utilisateurs (USER)</option>
-              <option value="CAMARA">Télécom & CAMARA</option>
-              <option value="SIM">SIM Swap & Intégrité</option>
+              <option value="ALL">All actions</option>
+              <option value="AUTH">Authentication (AUTH)</option>
+              <option value="ORG">Organizations (ORG)</option>
+              <option value="USER">User Accounts (USER)</option>
+              <option value="CAMARA">Telecom & CAMARA</option>
+              <option value="SIM">SIM Swap & Integrity</option>
             </select>
 
             <Button variant="outline" size="sm" onClick={load} loading={loading}>
-              <RefreshCw className="h-3.5 w-3.5 mr-1" /> Actualiser
+              <RefreshCw className="h-3.5 w-3.5 mr-1" /> Refresh
             </Button>
           </div>
         </div>
@@ -125,27 +125,27 @@ export default function AdminAuditPage() {
           ) : filtered.length === 0 ? (
             <EmptyState
               icon={<ShieldCheck className="h-8 w-8 text-slate-500" />}
-              title="Aucun journal d'audit correspondant"
-              description="Aucun événement ne correspond à vos filtres actuels."
+              title="No matching audit log"
+              description="No events match your current filters."
             />
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm text-slate-300">
                 <thead className="border-b border-slate-800 bg-slate-900/60 text-xs font-semibold uppercase tracking-wider text-slate-400">
                   <tr>
-                    <th className="px-5 py-3.5">Horodatage (UTC)</th>
+                    <th className="px-5 py-3.5">Timestamp (UTC)</th>
                     <th className="px-4 py-3.5">Action</th>
-                    <th className="px-4 py-3.5">Acteur</th>
-                    <th className="px-4 py-3.5">Cible</th>
-                    <th className="px-4 py-3.5">Adresse IP</th>
-                    <th className="px-5 py-3.5">Détails de l'événement</th>
+                    <th className="px-4 py-3.5">Actor</th>
+                    <th className="px-4 py-3.5">Target</th>
+                    <th className="px-4 py-3.5">IP Address</th>
+                    <th className="px-5 py-3.5">Event Details</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/80 font-mono text-xs">
                   {filtered.map((log) => (
                     <tr key={log.id} className="hover:bg-slate-800/40 transition">
                       <td className="px-5 py-3.5 text-slate-400 whitespace-nowrap">
-                        {new Date(log.created_at).toLocaleString("fr-FR", {
+                        {new Date(log.created_at).toLocaleString("en-US", {
                           year: "numeric",
                           month: "2-digit",
                           day: "2-digit",
@@ -166,7 +166,7 @@ export default function AdminAuditPage() {
                       </td>
 
                       <td className="px-4 py-3.5 text-slate-300 whitespace-nowrap">
-                        {log.actor_email || "Système interne"}
+                        {log.actor_email || "Internal System"}
                       </td>
 
                       <td className="px-4 py-3.5 text-slate-400 whitespace-nowrap">

@@ -51,22 +51,22 @@ export default function ManagerOverview() {
     get<{ stats: OverviewStats }>("/managers/overview")
       .then((d) => setStats(d.stats))
       .catch(() => {});
-    get<{ cargos: { reference: string; status: string }[] }>("/managers/cargos")
-      .then((d) => setCargos(d.cargos))
-      .catch(() => {});
+    get<any>("/managers/cargos")
+      .then((d) => setCargos(Array.isArray(d) ? d : (d?.cargos ?? [])))
+      .catch(() => setCargos([]));
     get<{ alerts: { id: string; severity: string; title: string; message: string; status: string }[] }>(
       "/managers/alerts"
     )
-      .then((d) => setAlerts(d.alerts.slice(0, 5)))
-      .catch(() => {});
+      .then((d) => setAlerts((Array.isArray(d) ? d : (d?.alerts ?? [])).slice(0, 5)))
+      .catch(() => setAlerts([]));
     get<{ organization: { name: string } | null }>("/managers/me")
-      .then((d) => d.organization && setOrgName(d.organization.name))
+      .then((d) => d?.organization && setOrgName(d.organization.name))
       .catch(() => {});
   }, []);
 
   const statusCounts = (() => {
     const map: Record<string, number> = {};
-    for (const c of cargos) map[c.status] = (map[c.status] || 0) + 1;
+    for (const c of (cargos || [])) map[c.status] = (map[c.status] || 0) + 1;
     return Object.entries(map).map(([name, value]) => ({ name, value }));
   })();
 
@@ -80,8 +80,8 @@ export default function ManagerOverview() {
   return (
     <div>
       <Topbar
-        title="Tableau de bord"
-        subtitle={orgName ? `${orgName} — vue manager` : "Vue manager"}
+        title="Dashboard"
+        subtitle={orgName ? `${orgName} — Manager View` : "Manager View"}
         onMenu={openMobileMenu}
       />
       <div className="p-6">
@@ -94,28 +94,28 @@ export default function ManagerOverview() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <StatsCard
                 icon={<Truck className="h-5 w-5" />}
-                label="Chauffeurs"
+                label="Drivers"
                 value={stats.drivers}
                 accent="teal"
-                sub={`${stats.active_drivers} actifs · ${stats.invited_drivers} invités`}
+                sub={`${stats.active_drivers} active · ${stats.invited_drivers} invited`}
               />
               <StatsCard
                 icon={<Boxes className="h-5 w-5" />}
-                label="Cargaisons en transit"
+                label="Cargo in Transit"
                 value={stats.in_transit}
                 accent="navy"
-                sub={`${stats.delivered} livrées`}
+                sub={`${stats.delivered} delivered`}
               />
               <StatsCard
                 icon={<Radio className="h-5 w-5" />}
-                label="Trackers"
+                label="GPS Trackers"
                 value={stats.trackers}
                 accent="emerald"
-                sub={`${stats.active_trackers} actifs`}
+                sub={`${stats.active_trackers} active`}
               />
               <StatsCard
                 icon={<AlertTriangle className="h-5 w-5" />}
-                label="Alertes ouvertes"
+                label="Open Alerts"
                 value={stats.open_alerts}
                 accent={stats.open_alerts > 0 ? "red" : "emerald"}
               />
@@ -124,12 +124,12 @@ export default function ManagerOverview() {
             <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
               <Card className="p-5 xl:col-span-2">
                 <div className="mb-4 flex items-center justify-between">
-                  <h3 className="font-bold text-raased-navy">Cargaisons par statut</h3>
+                  <h3 className="font-bold text-raased-navy">Cargo Shipments by Status</h3>
                   <Link
                     href="/dashboard/cargos"
                     className="inline-flex items-center gap-1 text-sm font-semibold text-raased-teal hover:text-raased-navy"
                   >
-                    Tout voir <ArrowRight className="h-4 w-4" />
+                    View all <ArrowRight className="h-4 w-4" />
                   </Link>
                 </div>
                 {statusCounts.length ? (
@@ -148,12 +148,12 @@ export default function ManagerOverview() {
                     </ResponsiveContainer>
                   </div>
                 ) : (
-                  <p className="py-10 text-center text-sm text-slate-400">Aucune cargaison.</p>
+                  <p className="py-10 text-center text-sm text-slate-400">No shipments found.</p>
                 )}
               </Card>
 
               <Card className="p-5">
-                <h3 className="mb-4 font-bold text-raased-navy">Destination des ressources</h3>
+                <h3 className="mb-4 font-bold text-raased-navy">Fleet Resource Distribution</h3>
                 <div className="h-52">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
@@ -180,7 +180,7 @@ export default function ManagerOverview() {
                     </span>
                   ))}
                   {!statusCounts.length && (
-                    <span className="text-xs text-slate-400">Aucune donnée</span>
+                    <span className="text-xs text-slate-400">No data</span>
                   )}
                 </div>
               </Card>
@@ -189,12 +189,12 @@ export default function ManagerOverview() {
             {alerts.length > 0 && (
               <Card className="mt-6 p-5">
                 <div className="mb-4 flex items-center justify-between">
-                  <h3 className="font-bold text-raased-navy">Alertes récentes</h3>
+                  <h3 className="font-bold text-raased-navy">Recent Alerts</h3>
                   <Link
                     href="/dashboard/alerts"
                     className="inline-flex items-center gap-1 text-sm font-semibold text-raased-teal hover:text-raased-navy"
                   >
-                    Tout voir <ArrowRight className="h-4 w-4" />
+                    View all <ArrowRight className="h-4 w-4" />
                   </Link>
                 </div>
                 <div className="divide-y divide-slate-100">

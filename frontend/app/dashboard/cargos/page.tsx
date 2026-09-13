@@ -3,7 +3,16 @@
 import { useEffect, useState } from "react";
 import { Boxes, PackagePlus, Play, Truck } from "lucide-react";
 import { Topbar } from "@/components/Topbar";
-import { Badge, Button, Card, EmptyState, Input, Modal, Select, Spinner } from "@/components/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  EmptyState,
+  Input,
+  Modal,
+  Select,
+  Spinner,
+} from "@/components/ui";
 import { useShell } from "@/components/ShellContext";
 import { useToast } from "@/components/Toasts";
 import { get, patch, post } from "@/lib/api";
@@ -30,7 +39,11 @@ interface CargoRow {
   destination_lat: number;
   destination_lng: number;
   position?: { progress_pct: number; eta_minutes: number } | null;
-  tracker?: { id: string; device_id: string; vehicle_registration?: string | null } | null;
+  tracker?: {
+    id: string;
+    device_id: string;
+    vehicle_registration?: string | null;
+  } | null;
   driver?: { id: string; first_name: string; last_name: string } | null;
 }
 
@@ -46,7 +59,9 @@ export default function CargosPage() {
   const { notify } = useToast();
   const [cargos, setCargos] = useState<CargoRow[]>([]);
   const [trackers, setTrackers] = useState<TrackerRow[]>([]);
-  const [drivers, setDrivers] = useState<{ id: string; first_name: string; last_name: string; email: string }[]>([]);
+  const [drivers, setDrivers] = useState<
+    { id: string; first_name: string; last_name: string; email: string }[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -64,14 +79,21 @@ export default function CargosPage() {
   });
 
   const load = () => {
-    get<{ cargos: CargoRow[] }>("/managers/cargos")
-      .then((d) => setCargos(d.cargos))
+    get<CargoRow[]>("/managers/cargos")
+      .then((d) => setCargos(d))
       .catch(() => notify("Impossible de charger les cargaisons.", "error"))
       .finally(() => setLoading(false));
     get<{ trackers: TrackerRow[] }>("/managers/trackers")
       .then((d) => setTrackers(d.trackers))
       .catch(() => {});
-    get<{ drivers: { id: string; first_name: string; last_name: string; email: string }[] }>("/managers/drivers")
+    get<{
+      drivers: {
+        id: string;
+        first_name: string;
+        last_name: string;
+        email: string;
+      }[];
+    }>("/managers/drivers")
       .then((d) => setDrivers(d.drivers))
       .catch(() => {});
   };
@@ -117,7 +139,10 @@ export default function CargosPage() {
       notify(status === "DEPART" ? "Convoi lancé." : "Statut mis à jour.");
       load();
     } catch (err) {
-      notify(err instanceof Error ? err.message : "Échec de la mise à jour.", "error");
+      notify(
+        err instanceof Error ? err.message : "Échec de la mise à jour.",
+        "error",
+      );
     } finally {
       setActionId(null);
     }
@@ -125,7 +150,11 @@ export default function CargosPage() {
 
   return (
     <div>
-      <Topbar title="Cargaisons" subtitle="Suivi des convois et des livraisons" onMenu={openMobileMenu} />
+      <Topbar
+        title="Cargaisons"
+        subtitle="Suivi des convois et des livraisons"
+        onMenu={openMobileMenu}
+      />
       <div className="p-6">
         <div className="mb-5 flex items-center justify-between">
           <p className="text-sm text-slate-500">{cargos.length} cargaison(s)</p>
@@ -157,27 +186,39 @@ export default function CargosPage() {
                     <th className="px-5 py-3 font-semibold">Véhicule</th>
                     <th className="px-5 py-3 font-semibold">Criticité</th>
                     <th className="px-5 py-3 font-semibold">Statut</th>
-                    <th className="px-5 py-3 text-right font-semibold">Actions</th>
+                    <th className="px-5 py-3 text-right font-semibold">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {cargos.map((c) => (
                     <tr key={c.id} className="hover:bg-slate-50/60">
                       <td className="px-5 py-3.5">
-                        <p className="font-semibold text-raased-navy">{c.reference}</p>
+                        <p className="font-semibold text-raased-navy">
+                          {c.reference}
+                        </p>
                         {c.position && (
-                          <p className="text-xs text-raased-teal">Progression {c.position.progress_pct}%</p>
+                          <p className="text-xs text-raased-teal">
+                            Progression {c.position.progress_pct}%
+                          </p>
                         )}
                       </td>
-                      <td className="px-5 py-3.5 text-slate-500">{c.type.replace(/_/g, " ")}</td>
+                      <td className="px-5 py-3.5 text-slate-500">
+                        {c.type.replace(/_/g, " ")}
+                      </td>
                       <td className="px-5 py-3.5 text-slate-500">
                         {c.origin} → {c.destination}
                       </td>
                       <td className="px-5 py-3.5 text-slate-500">
-                        {c.driver ? `${c.driver.first_name} ${c.driver.last_name}` : "Non assigné"}
+                        {c.driver
+                          ? `${c.driver.first_name} ${c.driver.last_name}`
+                          : "Non assigné"}
                       </td>
                       <td className="px-5 py-3.5 text-slate-500">
-                        {c.tracker?.vehicle_registration || c.tracker?.device_id || "—"}
+                        {c.tracker?.vehicle_registration ||
+                          c.tracker?.device_id ||
+                          "—"}
                       </td>
                       <td className="px-5 py-3.5">
                         <Badge value={c.criticality} />
@@ -215,12 +256,19 @@ export default function CargosPage() {
           </Card>
         )}
 
-        <Modal open={open} onClose={() => setOpen(false)} title="Nouvelle cargaison" wide>
+        <Modal
+          open={open}
+          onClose={() => setOpen(false)}
+          title="Nouvelle cargaison"
+          wide
+        >
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Input
               label="Référence"
               value={form.reference}
-              onChange={(e) => setForm((f) => ({ ...f, reference: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, reference: e.target.value }))
+              }
               placeholder="CARGO-2026-007"
             />
             <Select
@@ -238,7 +286,9 @@ export default function CargosPage() {
             <Select
               label="Criticité"
               value={form.criticality}
-              onChange={(e) => setForm((f) => ({ ...f, criticality: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, criticality: e.target.value }))
+              }
             >
               <option value="LOW">Faible</option>
               <option value="MEDIUM">Moyenne</option>
@@ -249,12 +299,16 @@ export default function CargosPage() {
               label="Vitesse estimée (km/h)"
               type="number"
               value={form.speed_kmh}
-              onChange={(e) => setForm((f) => ({ ...f, speed_kmh: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, speed_kmh: e.target.value }))
+              }
             />
             <Select
               label="Départ"
               value={form.origin}
-              onChange={(e) => setForm((f) => ({ ...f, origin: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, origin: e.target.value }))
+              }
             >
               {MOROCCO_CITIES.map((c) => (
                 <option key={c.city} value={c.city}>
@@ -265,7 +319,9 @@ export default function CargosPage() {
             <Select
               label="Destination"
               value={form.destination}
-              onChange={(e) => setForm((f) => ({ ...f, destination: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, destination: e.target.value }))
+              }
             >
               {MOROCCO_CITIES.map((c) => (
                 <option key={c.city} value={c.city}>
@@ -276,7 +332,9 @@ export default function CargosPage() {
             <Select
               label="Tracker / véhicule"
               value={form.tracker_id}
-              onChange={(e) => setForm((f) => ({ ...f, tracker_id: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, tracker_id: e.target.value }))
+              }
             >
               <option value="">Non assigné</option>
               {trackers.map((t) => (
@@ -288,14 +346,16 @@ export default function CargosPage() {
             <Select
               label="Chauffeur"
               value={form.driver_id}
-              onChange={(e) => setForm((f) => ({ ...f, driver_id: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, driver_id: e.target.value }))
+              }
             >
               <option value="">Non assigné</option>
               {drivers.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.first_name} {d.last_name}
-                  </option>
-                ))}
+                <option key={d.id} value={d.id}>
+                  {d.first_name} {d.last_name}
+                </option>
+              ))}
             </Select>
           </div>
           {error && (
@@ -307,7 +367,11 @@ export default function CargosPage() {
             <Button variant="outline" onClick={() => setOpen(false)}>
               Annuler
             </Button>
-            <Button loading={saving} onClick={create} disabled={!form.reference}>
+            <Button
+              loading={saving}
+              onClick={create}
+              disabled={!form.reference}
+            >
               Créer la cargaison
             </Button>
           </div>

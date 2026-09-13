@@ -2,13 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import {
-  AlertTriangle,
-  ArrowRight,
-  Boxes,
-  Radio,
-  Truck,
-} from "lucide-react";
+import { AlertTriangle, ArrowRight, Boxes, Radio, Truck } from "lucide-react";
 import {
   Bar,
   BarChart,
@@ -41,9 +35,17 @@ interface OverviewStats {
 export default function ManagerOverview() {
   const { openMobileMenu } = useShell();
   const [stats, setStats] = useState<OverviewStats | null>(null);
-  const [cargos, setCargos] = useState<{ reference: string; status: string }[]>([]);
+  const [cargos, setCargos] = useState<{ reference: string; status: string }[]>(
+    [],
+  );
   const [alerts, setAlerts] = useState<
-    { id: string; severity: string; title: string; message: string; status: string }[]
+    {
+      id: string;
+      severity: string;
+      title: string;
+      message: string;
+      status: string;
+    }[]
   >([]);
   const [orgName, setOrgName] = useState("");
 
@@ -51,12 +53,18 @@ export default function ManagerOverview() {
     get<{ stats: OverviewStats }>("/managers/overview")
       .then((d) => setStats(d.stats))
       .catch(() => {});
-    get<{ cargos: { reference: string; status: string }[] }>("/managers/cargos")
-      .then((d) => setCargos(d.cargos))
+    get<{ reference: string; status: string }[]>("/managers/cargos")
+      .then((d) => setCargos(d))
       .catch(() => {});
-    get<{ alerts: { id: string; severity: string; title: string; message: string; status: string }[] }>(
-      "/managers/alerts"
-    )
+    get<{
+      alerts: {
+        id: string;
+        severity: string;
+        title: string;
+        message: string;
+        status: string;
+      }[];
+    }>("/managers/alerts")
       .then((d) => setAlerts(d.alerts.slice(0, 5)))
       .catch(() => {});
     get<{ organization: { name: string } | null }>("/managers/me")
@@ -124,7 +132,9 @@ export default function ManagerOverview() {
             <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
               <Card className="p-5 xl:col-span-2">
                 <div className="mb-4 flex items-center justify-between">
-                  <h3 className="font-bold text-raased-navy">Cargaisons par statut</h3>
+                  <h3 className="font-bold text-raased-navy">
+                    Cargaisons par statut
+                  </h3>
                   <Link
                     href="/dashboard/cargos"
                     className="inline-flex items-center gap-1 text-sm font-semibold text-raased-teal hover:text-raased-navy"
@@ -137,23 +147,38 @@ export default function ManagerOverview() {
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={statusCounts}>
                         <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                        <YAxis allowDecimals={false} tick={{ fontSize: 12 }} width={30} />
+                        <YAxis
+                          allowDecimals={false}
+                          tick={{ fontSize: 12 }}
+                          width={30}
+                        />
                         <Tooltip />
-                        <Bar dataKey="value" radius={[8, 8, 0, 0]} fill="#0d7377">
+                        <Bar
+                          dataKey="value"
+                          radius={[8, 8, 0, 0]}
+                          fill="#0d7377"
+                        >
                           {statusCounts.map((s) => (
-                            <Cell key={s.name} fill={statusColors[s.name] || "#0d7377"} />
+                            <Cell
+                              key={s.name}
+                              fill={statusColors[s.name] || "#0d7377"}
+                            />
                           ))}
                         </Bar>
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
                 ) : (
-                  <p className="py-10 text-center text-sm text-slate-400">Aucune cargaison.</p>
+                  <p className="py-10 text-center text-sm text-slate-400">
+                    Aucune cargaison.
+                  </p>
                 )}
               </Card>
 
               <Card className="p-5">
-                <h3 className="mb-4 font-bold text-raased-navy">Destination des ressources</h3>
+                <h3 className="mb-4 font-bold text-raased-navy">
+                  Destination des ressources
+                </h3>
                 <div className="h-52">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
@@ -166,7 +191,10 @@ export default function ManagerOverview() {
                         paddingAngle={3}
                       >
                         {statusCounts.map((s) => (
-                          <Cell key={s.name} fill={statusColors[s.name] || "#0d7377"} />
+                          <Cell
+                            key={s.name}
+                            fill={statusColors[s.name] || "#0d7377"}
+                          />
                         ))}
                       </Pie>
                       <Tooltip />
@@ -175,12 +203,17 @@ export default function ManagerOverview() {
                 </div>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {statusCounts.map((s) => (
-                    <span key={s.name} className="badge bg-slate-100 text-slate-600">
+                    <span
+                      key={s.name}
+                      className="badge bg-slate-100 text-slate-600"
+                    >
                       {s.name.replace(/_/g, " ")} · {s.value}
                     </span>
                   ))}
                   {!statusCounts.length && (
-                    <span className="text-xs text-slate-400">Aucune donnée</span>
+                    <span className="text-xs text-slate-400">
+                      Aucune donnée
+                    </span>
                   )}
                 </div>
               </Card>
@@ -189,7 +222,9 @@ export default function ManagerOverview() {
             {alerts.length > 0 && (
               <Card className="mt-6 p-5">
                 <div className="mb-4 flex items-center justify-between">
-                  <h3 className="font-bold text-raased-navy">Alertes récentes</h3>
+                  <h3 className="font-bold text-raased-navy">
+                    Alertes récentes
+                  </h3>
                   <Link
                     href="/dashboard/alerts"
                     className="inline-flex items-center gap-1 text-sm font-semibold text-raased-teal hover:text-raased-navy"
@@ -202,8 +237,12 @@ export default function ManagerOverview() {
                     <div key={a.id} className="flex items-center gap-3 py-3">
                       <Badge value={a.severity} />
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold text-slate-700">{a.title}</p>
-                        <p className="truncate text-xs text-slate-400">{a.message}</p>
+                        <p className="truncate text-sm font-semibold text-slate-700">
+                          {a.title}
+                        </p>
+                        <p className="truncate text-xs text-slate-400">
+                          {a.message}
+                        </p>
                       </div>
                       <Badge value={a.status} />
                     </div>

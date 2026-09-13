@@ -24,6 +24,7 @@ from app.db.models.alerts import Alert
 from app.db.models.cargos import Cargo
 from app.db.models.trackers import Tracker
 from app.db.models.agent_decisions import AgentDecision
+from app.db.models.risk_assessments import RiskAssessment
 from app.db.models.account_invitations import AccountInvitation
 from app.db.session import get_db
 from app.api.deps import require_role
@@ -456,8 +457,41 @@ async def get_manager_overview(
             Cargo.status == "DELIVERED",
         )
     ) or 0
+    trackers_total = await db.scalar(
+        select(func.count(Tracker.id)).where(Tracker.organization_id == org_id)
+    ) or 0
+    trackers_active = await db.scalar(
+        select(func.count(Tracker.id)).where(
+            Tracker.organization_id == org_id,
+            Tracker.status == "ACTIVE",
+        )
+    ) or 0
+    open_alerts = await db.scalar(
+        select(func.count(Alert.id)).where(
+            Alert.organization_id == org_id,
+            Alert.status != "RESOLVED",
+        )
+    ) or 0
+    co_managers = await db.scalar(
+        select(func.count(User.id)).where(
+            User.organization_id == org_id,
+            User.role == "MANAGER",
+        )
+    ) or 0
 
-    return driver
+    return {
+        "stats": {
+            "drivers": d_total,
+            "active_drivers": d_active,
+            "invited_drivers": d_invited,
+            "in_transit": in_transit,
+            "delivered": delivered,
+            "trackers": trackers_total,
+            "active_trackers": trackers_active,
+            "open_alerts": open_alerts,
+            "co_managers": co_managers,
+        }
+    }
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -922,39 +956,46 @@ async def list_ai_decisions(
         return {"decisions": []}
 
     res = await db.execute(
-        select(AgentDecision)
+        select(AgentDecision, RiskAssessment, Corridor)
         .join(Cargo, AgentDecision.cargo_id == Cargo.id)
+        .join(RiskAssessment, AgentDecision.risk_assessment_id == RiskAssessment.id)
+        .join(Corridor, RiskAssessment.corridor_id == Corridor.id)
         .where(Cargo.organization_id == current_user.organization_id)
         .order_by(AgentDecision.created_at.desc())
     )
+    rows = res.all()
 
-    decisions = res.scalars().all()
+    DECISION_TYPE_MAP = {
+        "REQUEST_QOD": "QOD_BOOST",
+        "IMPROVE_CONNECTIVITY": "QOD_BOOST",
+        "REQUEST_NETWORK_SLICE": "QOD_BOOST",
+    }
+    SEVERITY_MAP = {"LOW": "INFO", "MEDIUM": "WARNING", "HIGH": "CRITICAL", "CRITICAL": "CRITICAL"}
 
     return {
         "decisions": [
             {
                 "id": str(d.id),
                 "decision": d.decision,
+                "title": d.decision.replace("_", " ").title(),
+                "reason": ra.reason or "Analyse de risque en cours.",
+                "recommendation": d.reasoning_summary or "Aucune justification disponible.",
                 "reasoning_summary": d.reasoning_summary,
                 "confidence": float(d.confidence) if d.confidence else 0.85,
+                "severity": SEVERITY_MAP.get((ra.risk_level or "").upper(), "INFO"),
+                "type": DECISION_TYPE_MAP.get(d.decision, "AUDIT_COMPLIANCE"),
                 "requires_human_approval": d.requires_human_approval,
                 "status": (
-                    "APPROVED"
-                    if d.approved_by
-                    else (
-                        "PENDING"
-                        if d.requires_human_approval
-                        else "EXECUTED"
-                    )
+                    "EXECUTED" if d.approved_by
+                    else ("PENDING_CONFIRMATION" if d.requires_human_approval else "ACTIVE")
                 ),
-                "created_at": (
-                    d.created_at.isoformat()
-                    if d.created_at
-                    else None
-                ),
+                "timestamp": d.created_at.isoformat() if d.created_at else None,
+                "created_at": d.created_at.isoformat() if d.created_at else None,
                 "cargo_reference": str(d.cargo_id)[:8],
+                "corridor": corr.name,
                 "driver_name": "Conducteur",
+                "telecom_node": "CAMARA Network-as-Code",
             }
-            for d in decisions
+            for d, ra, corr in rows
         ]
     }

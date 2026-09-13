@@ -285,12 +285,8 @@ async def camara_perception_node(state: AgentState) -> dict[str, Any]:
     if corridor_id is None:
         update.setdefault("missing_information", []).append("corridor_id indisponible pour Congestion Insights")
         return update
-    if not settings.CAMARA_WEBHOOK_SINK_URL or not settings.CAMARA_CONGESTION_NOTIFICATION_AUTH_TOKEN:
-        update.setdefault("missing_information", []).append("credentials webhook Congestion Insights indisponibles")
-        return update
     try:
-        result = await get_congestion_risk(tracker.msisdn, settings.CAMARA_WEBHOOK_SINK_URL,
-            settings.CAMARA_CONGESTION_NOTIFICATION_AUTH_TOKEN)
+        result = await get_congestion_risk(tracker.msisdn)
     except CamaraAPIError as exc:
         update.setdefault("errors", []).append(f"Congestion Insights indisponible: {exc}")
         return update

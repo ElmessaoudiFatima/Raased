@@ -58,6 +58,20 @@ class Settings(BaseSettings):
     FALSE_POSITIVE_MAX_RATE: float = 0.15
 
 
+    # --- Agent loop (worker de surveillance continue) ---
+    AGENT_LOOP_ENABLED: bool = False
+    AGENT_LOOP_INTERVAL_SECONDS: int = 20
+    AGENT_LOOP_COOLDOWN_SECONDS: int = 120
+
+    # --- QoD demo parameters (IP techniques, config assumée pour la démo,
+    # jamais déductibles automatiquement d'un tracker GPS) ---
+    AGENT_DEMO_DEVICE_PUBLIC_IP: str = "203.0.113.10"
+    AGENT_DEMO_DEVICE_PRIVATE_IP: str = "10.0.0.10"
+    AGENT_DEMO_APP_SERVER_IP: str = "203.0.113.20"
+    AGENT_DEMO_QOS_PROFILE: str = "QOS_E"
+    AGENT_DEMO_QOD_DURATION: int = 3600
+
+
 
     # --- Sécurité : détection d'usurpation de position ---
     POSITION_SPOOFING_THRESHOLD_KM: float = 5.0

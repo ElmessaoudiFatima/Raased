@@ -25,8 +25,7 @@ async def create_tracker(
     organization_id: uuid.UUID,
     payload: TrackerCreate,
 ) -> Tracker:
-    """Register a new tracker device for the organisation."""
-    # Check for duplicate device_id within the org
+    """Register a new tracker device. Status is always ACTIVE at creation."""
     existing = await db.execute(
         select(Tracker).where(Tracker.device_id == payload.device_id)
     )
@@ -37,7 +36,8 @@ async def create_tracker(
         organization_id=organization_id,
         device_id=payload.device_id,
         msisdn=payload.msisdn,
-        status=payload.status.upper(),
+        label=payload.label,
+        status="ACTIVE",   # jamais choisi par le manager
     )
     db.add(tracker)
     await db.commit()
@@ -92,11 +92,11 @@ async def update_tracker(
     tracker: Tracker,
     payload: TrackerUpdate,
 ) -> Tracker:
-    """Update editable tracker fields."""
+    """Update editable tracker fields (msisdn, label). Status is never touched here."""
     if payload.msisdn is not None:
         tracker.msisdn = payload.msisdn
-    if payload.status is not None:
-        tracker.status = payload.status.upper()
+    if payload.label is not None:
+        tracker.label = payload.label
     db.add(tracker)
     await db.commit()
     await db.refresh(tracker)
@@ -206,3 +206,20 @@ async def get_last_position(
     if row is None:
         return None
     return dict(row)
+    
+async def set_tracker_maintenance(
+    db: AsyncSession,
+    tracker: Tracker,
+    in_maintenance: bool,
+) -> Tracker:
+    """
+    Toggle maintenance mode. A tracker in maintenance cannot be assigned to a cargo.
+    """
+    if in_maintenance:
+        tracker.status = "MAINTENANCE"
+    else:
+        tracker.status = "ACTIVE"
+    db.add(tracker)
+    await db.commit()
+    await db.refresh(tracker)
+    return tracker

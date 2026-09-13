@@ -50,7 +50,7 @@ class User(Base):
     # =========================
 
     organization: Mapped["Organization"] = relationship(
-        back_populates="users", foreign_keys=[organization_id]
+        back_populates="users", foreign_keys=[organization_id], lazy="selectin"
     )
 
     acknowledged_alerts: Mapped[list["Alert"]] = relationship(back_populates="acknowledged_by_user")

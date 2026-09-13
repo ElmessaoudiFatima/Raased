@@ -46,7 +46,7 @@ const CorridorMap = dynamic(() => import("@/components/CorridorMap"), {
   ssr: false,
   loading: () => (
     <div className="flex h-full w-full items-center justify-center bg-slate-100 text-sm text-slate-500 rounded-2xl">
-      Chargement de la carte…
+      Loading map…
     </div>
   ),
 });
@@ -144,7 +144,7 @@ export default function CorridorsPage() {
   const load = () => {
     get<any>("/managers/corridors")
       .then((d) => setCorridors(Array.isArray(d) ? d : (d?.corridors ?? [])))
-      .catch(() => notify("Impossible de charger les corridors.", "error"))
+      .catch(() => notify("Failed to load corridors.", "error"))
       .finally(() => setLoading(false));
   };
 
@@ -154,7 +154,7 @@ export default function CorridorsPage() {
     setZonesLoading(true);
     get<any>(`/managers/corridors/${corridorId}/zones`)
       .then((d) => setZones(Array.isArray(d) ? d : (d?.zones ?? [])))
-      .catch(() => notify("Impossible de charger les zones à risque.", "error"))
+      .catch(() => notify("Failed to load risk zones.", "error"))
       .finally(() => setZonesLoading(false));
   };
 
@@ -195,11 +195,11 @@ export default function CorridorsPage() {
 
   const handleSave = async () => {
     if (!form.name.trim()) {
-      notify("Le nom du corridor est requis.", "error");
+      notify("Corridor name is required.", "error");
       return;
     }
     if (!currentGeo || currentGeo.coordinates.length < 2) {
-      setGeoError("Tracez un itinéraire sur la carte avant d'enregistrer.");
+      setGeoError("Trace a route on the map before saving.");
       return;
     }
     setGeoError("");
@@ -223,20 +223,20 @@ export default function CorridorsPage() {
           risk_level: form.risk_level,
           geometry: currentGeo,
         });
-        notify("Corridor créé avec succès !", "success");
+        notify("Corridor created successfully!", "success");
       } else if (mode === "edit" && editId) {
         await patch(`/managers/corridors/${editId}`, {
           name: form.name,
           risk_level: form.risk_level,
           geometry: currentGeo,
         });
-        notify("Corridor mis à jour.", "success");
+        notify("Corridor updated successfully.", "success");
       }
       handleCancel();
       load();
     } catch (err) {
       notify(
-        err instanceof Error ? err.message : "Erreur lors de l'enregistrement.",
+        err instanceof Error ? err.message : "Error saving corridor.",
         "error",
       );
     } finally {
@@ -245,17 +245,17 @@ export default function CorridorsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Supprimer ce corridor ? Cette action est irréversible."))
+    if (!confirm("Delete this corridor? This action cannot be undone."))
       return;
     setDeleting(id);
     try {
       await del(`/managers/corridors/${id}`);
-      notify("Corridor supprimé.", "success");
+      notify("Corridor deleted.", "success");
       if (highlightId === id) handleCancel();
       load();
     } catch (err) {
       notify(
-        err instanceof Error ? err.message : "Erreur lors de la suppression.",
+        err instanceof Error ? err.message : "Error deleting corridor.",
         "error",
       );
     } finally {
@@ -311,11 +311,11 @@ export default function CorridorsPage() {
   const handleSaveZone = async () => {
     if (!zonesCorridor) return;
     if (!zoneForm.name.trim()) {
-      notify("Le nom de la zone est requis.", "error");
+      notify("Risk zone name is required.", "error");
       return;
     }
     if (!zoneDraftGeometry) {
-      notify("Cliquez sur la carte pour placer le centre de la zone.", "error");
+      notify("Click on the map to place the center of the risk zone.", "error");
       return;
     }
     setZoneSaving(true);
@@ -327,7 +327,7 @@ export default function CorridorsPage() {
         description: zoneForm.description || undefined,
         geometry: zoneDraftGeometry,
       });
-      notify("Zone à risque créée.", "success");
+      notify("Risk zone created successfully.", "success");
       setAddingZone(false);
       setZoneDraftGeometry(null);
       setZoneDraftSignal((n) => n + 1);
@@ -336,7 +336,7 @@ export default function CorridorsPage() {
       notify(
         err instanceof Error
           ? err.message
-          : "Erreur lors de la création de la zone.",
+          : "Error creating risk zone.",
         "error",
       );
     } finally {
@@ -345,15 +345,15 @@ export default function CorridorsPage() {
   };
 
   const handleDeleteZone = async (zoneId: string) => {
-    if (!confirm("Supprimer cette zone à risque ?")) return;
+    if (!confirm("Delete this risk zone?")) return;
     setZoneDeleting(zoneId);
     try {
       await del(`/managers/zones/${zoneId}`);
-      notify("Zone supprimée.", "success");
+      notify("Risk zone deleted.", "success");
       if (zonesCorridor) loadZones(zonesCorridor.id);
     } catch (err) {
       notify(
-        err instanceof Error ? err.message : "Erreur lors de la suppression.",
+        err instanceof Error ? err.message : "Error deleting risk zone.",
         "error",
       );
     } finally {
@@ -364,8 +364,8 @@ export default function CorridorsPage() {
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-[#060d1a]">
       <Topbar
-        title="Corridors logistiques"
-        subtitle="Tracez et gérez vos corridors de transport"
+        title="Logistics Corridors"
+        subtitle="Trace and manage transport corridors"
         onMenu={openMobileMenu}
       />
 
@@ -401,13 +401,13 @@ export default function CorridorsPage() {
                     {corridors.length !== 1 ? "s" : ""}
                   </p>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    Actifs et globaux
+                    Active & global
                   </p>
                 </div>
                 {mode === "list" && (
                   <Button size="sm" onClick={handleCreate} className="gap-1.5">
                     <Plus className="h-3.5 w-3.5" />
-                    Nouveau
+                    New
                   </Button>
                 )}
               </div>
@@ -417,20 +417,20 @@ export default function CorridorsPage() {
                 <div className="border-b border-slate-800/60 bg-slate-900/40 px-5 py-4 space-y-3">
                   <p className="text-xs font-bold text-slate-300 uppercase tracking-wider">
                     {mode === "create"
-                      ? "Nouveau corridor"
-                      : "Modifier le corridor"}
+                      ? "New Corridor"
+                      : "Edit Corridor"}
                   </p>
                   <Input
-                    label="Nom du corridor"
+                    label="Corridor Name"
                     dark
-                    placeholder="Ex: Casablanca → Marrakech (A7)"
+                    placeholder="e.g., Casablanca → Marrakech (A7)"
                     value={form.name}
                     onChange={(e) =>
                       setForm((f) => ({ ...f, name: e.target.value }))
                     }
                   />
                   <Select
-                    label="Niveau de risque"
+                    label="Risk Level"
                     dark
                     value={form.risk_level}
                     onChange={(e) =>
@@ -457,7 +457,7 @@ export default function CorridorsPage() {
                   {currentGeo && (
                     <p className="text-xs text-emerald-400 flex items-center gap-1.5">
                       <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
-                      Tracé prêt — {currentGeo.coordinates.length} points
+                      Route ready — {currentGeo.coordinates.length} points
                     </p>
                   )}
 
@@ -469,7 +469,7 @@ export default function CorridorsPage() {
                       disabled={!form.name || !currentGeo}
                     >
                       <Save className="h-3.5 w-3.5" />
-                      Enregistrer
+                      Save
                     </Button>
                     <Button
                       variant="outline"
@@ -478,14 +478,13 @@ export default function CorridorsPage() {
                       className="gap-1.5"
                     >
                       <X className="h-3.5 w-3.5" />
-                      Annuler
+                      Cancel
                     </Button>
                   </div>
 
                   <p className="text-xs text-slate-500 leading-relaxed">
-                    💡 Utilisez les champs sur la carte (haut à droite) pour
-                    tracer l'itinéraire. Déplacez les points bleus pour ajuster
-                    le tracé.
+                    💡 Use the search inputs on the map (top-right) to trace the
+                    route. Drag blue waypoints to adjust geometry.
                   </p>
                 </div>
               )}
@@ -499,8 +498,8 @@ export default function CorridorsPage() {
                 ) : corridors.length === 0 ? (
                   <EmptyState
                     icon={<Route className="h-8 w-8" />}
-                    title="Aucun corridor"
-                    description="Créez votre premier corridor logistique en cliquant sur « Nouveau »."
+                    title="No corridors"
+                    description="Create your first logistics corridor by clicking 'New'."
                   />
                 ) : (
                   corridors.map((c) => (
@@ -607,7 +606,7 @@ function ZonesPanel({
       <div className="px-5 py-3 border-b border-slate-800/60 bg-slate-900/40">
         {weatherLoading ? (
           <div className="flex items-center gap-2 text-xs text-slate-500">
-            <Spinner className="h-3.5 w-3.5" /> Chargement météo…
+            <Spinner className="h-3.5 w-3.5" /> Loading weather…
           </div>
         ) : weather ? (
           <div className="flex items-center justify-between text-xs">
@@ -627,20 +626,20 @@ function ZonesPanel({
             </div>
             {weather.degraded_conditions && (
               <span className="flex items-center gap-1 text-amber-400 font-semibold">
-                <AlertTriangle className="h-3.5 w-3.5" /> Conditions dégradées
+                <AlertTriangle className="h-3.5 w-3.5" /> Degraded conditions
               </span>
             )}
           </div>
         ) : (
           <p className="flex items-center gap-1.5 text-xs text-slate-500">
-            <Cloud className="h-3.5 w-3.5" /> Météo indisponible pour ce
+            <Cloud className="h-3.5 w-3.5" /> Weather unavailable for this
             corridor.
           </p>
         )}
         <p className="mt-1.5 text-[10px] text-slate-600 leading-relaxed">
-          💡 Information indicative pour ce corridor — ne remplace pas votre
-          connaissance opérationnelle du terrain (zone d'accident connue,
-          contrôle douanier, historique local…).
+          💡 Advisory weather data for this corridor — does not replace your
+          operational field knowledge (known accident zones, customs controls,
+          local history…).
         </p>
       </div>
 
@@ -648,12 +647,12 @@ function ZonesPanel({
       {addingZone ? (
         <div className="border-b border-slate-800/60 bg-slate-900/40 px-5 py-4 space-y-3">
           <p className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-            Nouvelle zone à risque
+            New Risk Zone
           </p>
           <Input
-            label="Nom"
+            label="Name"
             dark
-            placeholder="Ex: Zone de régulation poids lourds"
+            placeholder="e.g., Heavy vehicle regulation zone"
             value={zoneForm.name}
             onChange={(e) =>
               setZoneForm((f) => ({ ...f, name: e.target.value }))
@@ -674,7 +673,7 @@ function ZonesPanel({
             ))}
           </Select>
           <Select
-            label="Niveau de risque"
+            label="Risk Level"
             dark
             value={zoneForm.risk_level}
             onChange={(e) =>
@@ -691,9 +690,9 @@ function ZonesPanel({
             ))}
           </Select>
           <Textarea
-            label="Description (optionnel)"
+            label="Description (optional)"
             dark
-            placeholder="Contexte opérationnel, précisions…"
+            placeholder="Operational context, specifics…"
             value={zoneForm.description}
             onChange={(e) =>
               setZoneForm((f) => ({ ...f, description: e.target.value }))
@@ -703,12 +702,12 @@ function ZonesPanel({
           {zoneDraftGeometry ? (
             <p className="text-xs text-emerald-400 flex items-center gap-1.5">
               <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
-              Cercle placé sur la carte
+              Circle placed on the map
             </p>
           ) : (
             <p className="text-xs text-amber-400 flex items-center gap-1.5">
               <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-              Cliquez sur la carte pour placer la zone
+              Click on the map to place the zone center
             </p>
           )}
 
@@ -720,7 +719,7 @@ function ZonesPanel({
               disabled={!zoneForm.name || !zoneDraftGeometry}
             >
               <Save className="h-3.5 w-3.5" />
-              Enregistrer
+              Save
             </Button>
             <Button
               variant="outline"
@@ -729,7 +728,7 @@ function ZonesPanel({
               className="gap-1.5"
             >
               <X className="h-3.5 w-3.5" />
-              Annuler
+              Cancel
             </Button>
           </div>
         </div>
@@ -737,7 +736,7 @@ function ZonesPanel({
         <div className="px-5 py-3 border-b border-slate-800/60">
           <Button size="sm" onClick={onStartAdd} className="w-full gap-1.5">
             <Plus className="h-3.5 w-3.5" />
-            Nouvelle zone à risque
+            New Risk Zone
           </Button>
         </div>
       )}
@@ -751,8 +750,8 @@ function ZonesPanel({
         ) : zones.length === 0 ? (
           <EmptyState
             icon={<ShieldAlert className="h-8 w-8" />}
-            title="Aucune zone à risque"
-            description="Ajoutez une zone à risque sur ce corridor pour renforcer la surveillance."
+            title="No risk zones"
+            description="Add a risk zone to this corridor to strengthen surveillance."
           />
         ) : (
           zones.map((z) => {
@@ -875,7 +874,7 @@ function CorridorCard({
 
       {!isOwned && (
         <p className="text-[10px] text-slate-500 italic mb-2">
-          Corridor global — lecture seule
+          Global corridor — Read only
         </p>
       )}
 
@@ -884,16 +883,16 @@ function CorridorCard({
         <div className="flex items-center gap-2">
           {c.is_active ? (
             <span className="flex items-center gap-1 text-[10px] font-semibold text-emerald-400">
-              <CheckCircle2 className="h-3 w-3" /> Actif
+              <CheckCircle2 className="h-3 w-3" /> Active
             </span>
           ) : (
             <span className="flex items-center gap-1 text-[10px] font-semibold text-slate-500">
-              <XCircle className="h-3 w-3" /> Inactif
+              <XCircle className="h-3 w-3" /> Inactive
             </span>
           )}
           {!c.geometry && (
             <span className="text-[10px] text-slate-500 italic">
-              Sans tracé
+              No geometry
             </span>
           )}
         </div>
@@ -906,7 +905,7 @@ function CorridorCard({
                 e.stopPropagation();
                 onManageZones();
               }}
-              title="Zones à risque"
+              title="Risk Zones"
               className="rounded-lg p-1.5 text-slate-400 hover:bg-purple-900/40 hover:text-purple-300 transition"
             >
               <ShieldAlert className="h-3.5 w-3.5" />
@@ -919,7 +918,7 @@ function CorridorCard({
                 e.stopPropagation();
                 onEdit();
               }}
-              title="Modifier"
+              title="Edit"
               className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-700 hover:text-blue-300 transition"
             >
               <Pencil className="h-3.5 w-3.5" />
@@ -932,7 +931,7 @@ function CorridorCard({
                 e.stopPropagation();
                 onDelete();
               }}
-              title="Supprimer"
+              title="Delete"
               disabled={isDeleting}
               className="rounded-lg p-1.5 text-slate-400 hover:bg-red-900/40 hover:text-red-400 transition disabled:opacity-50"
             >
@@ -953,7 +952,7 @@ function CorridorCard({
 async function reverseGeocode(lat: number, lon: number): Promise<string> {
   try {
     const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=10`;
-    const res = await fetch(url, { headers: { "Accept-Language": "fr" } });
+    const res = await fetch(url, { headers: { "Accept-Language": "en" } });
     const data = await res.json();
     return (
       data.address?.city ||

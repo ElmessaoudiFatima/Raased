@@ -29,11 +29,7 @@ export function AuthShell({
       <div className="pointer-events-none absolute -bottom-24 right-1/4 h-[450px] w-[450px] rounded-full bg-cyan-500/20 blur-[130px] animate-orb-2" />
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:36px_36px] animate-grid-drift [mask-image:radial-gradient(ellipse_60%_50%_at_50%_40%,#000_70%,transparent_100%)]" />
 
-      {/* Top language selector pill */}
-      <div className={`relative z-20 mb-6 flex w-full ${maxWidth} justify-end`}>
-        <LanguageSelector currentLang={lang} onLanguageChange={setLang} />
-      </div>
-
+      
       {/* Brand logo */}
       {showLogo && (
         <div className="relative z-10 mb-8 flex flex-col items-center text-center">

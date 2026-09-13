@@ -8,10 +8,6 @@ from typing import Optional
 from pydantic import BaseModel
 
 
-# ─────────────────────────────────────────────
-# Tracker status values
-# ─────────────────────────────────────────────
-
 TRACKER_STATUSES = {"ACTIVE", "INACTIVE", "ASSIGNED", "MAINTENANCE"}
 
 
@@ -20,20 +16,28 @@ TRACKER_STATUSES = {"ACTIVE", "INACTIVE", "ASSIGNED", "MAINTENANCE"}
 # ─────────────────────────────────────────────
 
 class TrackerCreate(BaseModel):
-    """Payload to register a new tracker device."""
-    device_id: str              # Unique device identifier (IMEI or similar)
-    msisdn: Optional[str] = None  # Phone number associated with the SIM card
-    status: str = "ACTIVE"      # ACTIVE | INACTIVE | MAINTENANCE
+    """
+    Payload to register a new tracker device.
+    Status is always ACTIVE at creation — never chosen by the manager.
+    """
+    device_id: str                          # IMEI / numéro de série du boîtier physique
+    msisdn: str                             # obligatoire — indispensable pour les appels CAMARA
+    label: Optional[str] = None             # nom convivial, ex: "Camion Renault 1"
 
 
 # ─────────────────────────────────────────────
-# Update
+# Update (statut non modifiable ici — voir endpoints dédiés)
 # ─────────────────────────────────────────────
 
 class TrackerUpdate(BaseModel):
-    """Payload to update tracker fields (all optional)."""
+    """Payload to update tracker fields (all optional). Status changes go through dedicated actions."""
     msisdn: Optional[str] = None
-    status: Optional[str] = None
+    label: Optional[str] = None
+
+
+class TrackerMaintenanceUpdate(BaseModel):
+    """Dedicated payload to put a tracker in/out of maintenance."""
+    in_maintenance: bool
 
 
 # ─────────────────────────────────────────────
@@ -41,7 +45,6 @@ class TrackerUpdate(BaseModel):
 # ─────────────────────────────────────────────
 
 class TrackerAssign(BaseModel):
-    """Payload to assign a tracker to a cargo."""
     cargo_id: uuid.UUID
 
 
@@ -50,7 +53,6 @@ class TrackerAssign(BaseModel):
 # ─────────────────────────────────────────────
 
 class TrackerLocationOut(BaseModel):
-    """Last known location of a tracker."""
     tracker_id: uuid.UUID
     latitude: float
     longitude: float
@@ -67,7 +69,6 @@ class TrackerLocationOut(BaseModel):
 # ─────────────────────────────────────────────
 
 class CargoTrackerOut(BaseModel):
-    """Assignment record between tracker and cargo."""
     id: uuid.UUID
     cargo_id: uuid.UUID
     tracker_id: uuid.UUID
@@ -79,11 +80,11 @@ class CargoTrackerOut(BaseModel):
 
 
 class TrackerOut(BaseModel):
-    """Tracker response representation."""
     id: uuid.UUID
     organization_id: uuid.UUID
-    device_id: Optional[str]
-    msisdn: Optional[str]
+    device_id: str
+    msisdn: str
+    label: Optional[str]
     status: str
     last_seen_at: Optional[datetime]
     created_at: datetime

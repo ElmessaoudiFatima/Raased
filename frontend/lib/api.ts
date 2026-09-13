@@ -16,7 +16,7 @@ export class ApiError extends Error {
   data: ApiErrorData;
 
   constructor(status: number, data: ApiErrorData) {
-    let msg = "Une erreur est survenue";
+    let msg = "An error occurred";
     if (typeof data?.detail === "string") {
       msg = data.detail;
     } else if (Array.isArray(data?.detail) && data.detail[0]?.msg) {
@@ -66,7 +66,7 @@ api.interceptors.response.use(
     return Promise.reject(
       new ApiError(
         error.response?.status || 500,
-        error.response?.data || { error: "Erreur navigateur" }
+        error.response?.data || { error: "Network or browser error" }
       )
     );
   }

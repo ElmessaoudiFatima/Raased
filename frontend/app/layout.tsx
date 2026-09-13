@@ -5,9 +5,9 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
-  title: "Raased — Observateur des couloirs logistiques",
+  title: "Raased — Logistics Corridor Observer",
   description:
-    "Plateforme de pilotage et de surveillance des corridors logistiques : supervision temps réel, alertes et gestion de flotte.",
+    "Logistics corridor management and monitoring platform: real-time supervision, alerts and fleet management.",
 };
 
 export default function RootLayout({
@@ -16,7 +16,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="fr" className={inter.variable}>
+    <html lang="en" className={inter.variable}>
       <body>{children}</body>
     </html>
   );

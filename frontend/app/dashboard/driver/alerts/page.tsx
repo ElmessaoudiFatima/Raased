@@ -41,7 +41,7 @@ export default function DriverAlertsPage() {
     setLoading(true);
     get<{ alerts: DriverAlert[] }>("/drivers/alerts")
       .then((d) => setAlerts(d.alerts))
-      .catch(() => notify("Impossible de charger les alertes.", "error"))
+      .catch(() => notify("Failed to load alerts.", "error"))
       .finally(() => setLoading(false));
   };
 
@@ -51,12 +51,12 @@ export default function DriverAlertsPage() {
     setAckId(id);
     try {
       await patch(`/drivers/alerts/${id}/acknowledge`);
-      notify("Alerte prise en compte par le chauffeur.");
+      notify("Alert acknowledged by driver.");
       setAlerts((prev) =>
         prev.map((a) => (a.id === id ? { ...a, status: "ACKNOWLEDGED" } : a))
       );
     } catch (err) {
-      notify(err instanceof Error ? err.message : "Erreur de validation.", "error");
+      notify(err instanceof Error ? err.message : "Validation error.", "error");
     } finally {
       setAckId(null);
     }
@@ -78,18 +78,18 @@ export default function DriverAlertsPage() {
   return (
     <div>
       <Topbar
-        title="Alertes & Consignes de l'Agent IA"
-        subtitle="Notifications critiques, conditions de circulation et recommandations de pilotage"
+        title="Alerts & AI Directives"
+        subtitle="Critical notifications, route conditions, and driving recommendations"
         onMenu={openMobileMenu}
       />
 
       <div className="p-6 space-y-6">
         <div className="flex items-center justify-between">
           <p className="text-sm text-slate-400">
-            {alerts.length} alerte(s) répertoriée(s) pour votre convoi
+            {alerts.length} alert(s) listed for your convoy
           </p>
           <Button variant="outline" size="sm" onClick={load} loading={loading}>
-            <RefreshCw className="h-3.5 w-3.5 mr-1" /> Actualiser
+            <RefreshCw className="h-3.5 w-3.5 mr-1" /> Refresh
           </Button>
         </div>
 
@@ -97,10 +97,10 @@ export default function DriverAlertsPage() {
         <Card className="p-5 border-blue-500/30 bg-blue-950/20 space-y-3">
           <div className="flex items-center gap-2.5 text-blue-300">
             <Sparkles className="h-5 w-5 text-amber-400" />
-            <h3 className="font-bold text-sm">Copilote IA Raased — Recommandation active</h3>
+            <h3 className="font-bold text-sm">Raased AI Copilot — Active Recommendation</h3>
           </div>
           <p className="text-xs text-slate-300 leading-relaxed">
-            « Ralentissement important signalé aux abords de Settat. Le profil CAMARA QoD a été automatiquement renforcé pour garantir votre liaison télématique. Suivez l'itinéraire recommandé sur votre carte pour économiser 22 minutes de trajet. »
+            "Significant slowdown reported near Settat. The CAMARA QoD profile has been automatically boosted to ensure continuous telematics link. Follow the recommended route on your map to save 22 minutes."
           </p>
         </Card>
 
@@ -113,8 +113,8 @@ export default function DriverAlertsPage() {
           <Card className="p-8 border-slate-800 bg-[#0f172a]">
             <EmptyState
               icon={<CheckCircle2 className="h-10 w-10 text-emerald-400" />}
-              title="Aucune anomalie signalée"
-              description="Votre convoi progresse dans les conditions nominales de sécurité et de délai."
+              title="No anomalies reported"
+              description="Your convoy is progressing under nominal safety and schedule conditions."
             />
           </Card>
         ) : (
@@ -138,7 +138,7 @@ export default function DriverAlertsPage() {
                       </div>
                       {a.cargo_reference && (
                         <p className="text-xs text-slate-400 mt-0.5">
-                          Cargaison concernée : <strong className="text-slate-200">{a.cargo_reference}</strong>
+                          Affected cargo: <strong className="text-slate-200">{a.cargo_reference}</strong>
                         </p>
                       )}
                     </div>
@@ -147,7 +147,7 @@ export default function DriverAlertsPage() {
                   <div className="flex items-center gap-3 self-end sm:self-center">
                     {a.status === "ACKNOWLEDGED" ? (
                       <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-400 border border-emerald-500/20">
-                        <CheckCircle2 className="h-3.5 w-3.5" /> Prise en compte
+                        <CheckCircle2 className="h-3.5 w-3.5" /> Acknowledged
                       </span>
                     ) : (
                       <Button
@@ -157,7 +157,7 @@ export default function DriverAlertsPage() {
                         onClick={() => acknowledge(a.id)}
                         className="text-xs"
                       >
-                        Acquitter l'alerte
+                        Acknowledge alert
                       </Button>
                     )}
                   </div>
@@ -169,7 +169,7 @@ export default function DriverAlertsPage() {
 
                 {a.created_at && (
                   <p className="text-[11px] text-slate-500 flex items-center gap-1">
-                    <Clock className="h-3 w-3" /> Reçue le {new Date(a.created_at).toLocaleString("fr-FR")}
+                    <Clock className="h-3 w-3" /> Received on {new Date(a.created_at).toLocaleString("en-US")}
                   </p>
                 )}
               </Card>

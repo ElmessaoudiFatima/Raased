@@ -35,7 +35,7 @@ class Corridor(Base):
         default=datetime.utcnow,
         onupdate=datetime.utcnow,
     )
-
+    cargos: Mapped[list["Cargo"]] = relationship(back_populates="corridor")
     organization: Mapped["Organization | None"] = relationship(
         back_populates="corridors", foreign_keys=[organization_id]
     )

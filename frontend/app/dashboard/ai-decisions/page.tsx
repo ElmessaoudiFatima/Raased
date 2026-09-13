@@ -54,7 +54,7 @@ export default function AIDecisionsPage() {
     setLoading(true);
     get<{ decisions: AIDecision[] }>("/managers/ai-decisions")
       .then((d) => setDecisions(d.decisions))
-      .catch(() => notify("Impossible de charger les décisions IA.", "error"))
+      .catch(() => notify("Failed to load AI decisions.", "error"))
       .finally(() => setLoading(false));
   };
 
@@ -67,7 +67,7 @@ export default function AIDecisionsPage() {
         prev.map((d) => (d.id === id ? { ...d, status: "EXECUTED" } : d))
       );
       setActionId(null);
-      notify(`Action validée : ${title}`);
+      notify(`Action confirmed: ${title}`);
     }, 600);
   };
 
@@ -106,8 +106,8 @@ export default function AIDecisionsPage() {
   return (
     <div>
       <Topbar
-        title="Décisions de l'Agent IA par Chauffeur"
-        subtitle="Routage dynamique, profil de Qualité de Service (QoD CAMARA) et intégrité de flotte"
+        title="AI Agent Decisions by Driver"
+        subtitle="Dynamic routing, CAMARA Quality on Demand (QoD) profiles, and fleet integrity"
         onMenu={openMobileMenu}
       />
 
@@ -120,7 +120,7 @@ export default function AIDecisionsPage() {
                 <Sparkles className="h-5 w-5 text-amber-400" />
               </div>
               <div>
-                <p className="text-xs text-slate-400 uppercase font-semibold">Total Recommandations</p>
+                <p className="text-xs text-slate-400 uppercase font-semibold">Total Recommendations</p>
                 <p className="text-2xl font-bold text-white">{decisions.length}</p>
               </div>
             </div>
@@ -132,7 +132,7 @@ export default function AIDecisionsPage() {
                 <Zap className="h-5 w-5 text-cyan-400" />
               </div>
               <div>
-                <p className="text-xs text-slate-400 uppercase font-semibold">Sessions QoD Allouées</p>
+                <p className="text-xs text-slate-400 uppercase font-semibold">Allocated QoD Sessions</p>
                 <p className="text-2xl font-bold text-cyan-300">
                   {decisions.filter((d) => d.type === "QOD_BOOST").length}
                 </p>
@@ -146,7 +146,7 @@ export default function AIDecisionsPage() {
                 <ShieldCheck className="h-5 w-5 text-emerald-400" />
               </div>
               <div>
-                <p className="text-xs text-slate-400 uppercase font-semibold">Fiabilité Globale IA</p>
+                <p className="text-xs text-slate-400 uppercase font-semibold">Overall AI Reliability</p>
                 <p className="text-2xl font-bold text-emerald-400">98.9%</p>
               </div>
             </div>
@@ -162,7 +162,7 @@ export default function AIDecisionsPage() {
               onChange={(e) => setDriverFilter(e.target.value)}
               className="rounded-xl border border-slate-800 bg-[#0f172a] px-3.5 py-2 text-xs font-semibold text-slate-200 outline-none transition focus:border-blue-500"
             >
-              <option value="ALL">Tous les chauffeurs</option>
+              <option value="ALL">All Drivers</option>
               {driverNames.map((name) => (
                 <option key={name} value={name}>
                   {name}
@@ -176,16 +176,16 @@ export default function AIDecisionsPage() {
               onChange={(e) => setTypeFilter(e.target.value)}
               className="rounded-xl border border-slate-800 bg-[#0f172a] px-3.5 py-2 text-xs font-semibold text-slate-200 outline-none transition focus:border-blue-500"
             >
-              <option value="ALL">Tous les types d'action</option>
-              <option value="REROUTE">Optimisation Itinéraire (Reroute)</option>
-              <option value="QOD_BOOST">Boost Télématique (CAMARA QoD)</option>
-              <option value="SIM_SWAP_VERIFY">Sécurité SIM & Terminaux</option>
-              <option value="AUDIT_COMPLIANCE">Conformité Géofence</option>
+              <option value="ALL">All Action Types</option>
+              <option value="REROUTE">Route Optimization (Reroute)</option>
+              <option value="QOD_BOOST">Telematics Boost (CAMARA QoD)</option>
+              <option value="SIM_SWAP_VERIFY">SIM & Device Security</option>
+              <option value="AUDIT_COMPLIANCE">Geofence Compliance</option>
             </select>
           </div>
 
           <Button variant="outline" size="sm" onClick={load} loading={loading}>
-            <RefreshCw className="h-3.5 w-3.5 mr-1" /> Rafraîchir
+            <RefreshCw className="h-3.5 w-3.5 mr-1" /> Refresh
           </Button>
         </div>
 
@@ -198,8 +198,8 @@ export default function AIDecisionsPage() {
           <Card className="p-8 border-slate-800 bg-[#0f172a]">
             <EmptyState
               icon={<Bot className="h-8 w-8 text-slate-500" />}
-              title="Aucune décision d'agent pour ces critères"
-              description="Sélectionnez un autre chauffeur ou réinitialisez les filtres."
+              title="No agent decisions for these criteria"
+              description="Select another driver or reset the filters."
             />
           </Card>
         ) : (
@@ -222,21 +222,21 @@ export default function AIDecisionsPage() {
                         </span>
                       </div>
                       <p className="text-xs text-slate-400 flex items-center gap-1.5 mt-0.5">
-                        <Truck className="h-3.5 w-3.5 text-blue-400" /> Chauffeur : <strong className="text-slate-200">{dec.driver_name}</strong>
+                        <Truck className="h-3.5 w-3.5 text-blue-400" /> Driver: <strong className="text-slate-200">{dec.driver_name}</strong>
                         <span>•</span>
-                        <span>Corridor : {dec.corridor}</span>
+                        <span>Corridor: {dec.corridor}</span>
                       </p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-3 self-end sm:self-center">
                     <div className="text-right">
-                      <span className="text-[11px] text-slate-400">Confiance IA</span>
+                      <span className="text-[11px] text-slate-400">AI Confidence</span>
                       <p className="font-mono text-xs font-bold text-emerald-400">{dec.confidence}%</p>
                     </div>
                     {dec.status === "EXECUTED" ? (
                       <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-400 border border-emerald-500/20">
-                        <CheckCircle2 className="h-3.5 w-3.5" /> Appliquée
+                        <CheckCircle2 className="h-3.5 w-3.5" /> Applied
                       </span>
                     ) : (
                       <Button
@@ -246,7 +246,7 @@ export default function AIDecisionsPage() {
                         onClick={() => applyDecision(dec.id, dec.title)}
                         className="text-xs"
                       >
-                        Valider la recommandation
+                        Confirm Recommendation
                       </Button>
                     )}
                   </div>
@@ -256,14 +256,14 @@ export default function AIDecisionsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
                   <div className="rounded-xl border border-slate-800 bg-[#0a101d] p-3 space-y-1">
                     <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-                      Constat / Déclencheur télématique
+                      Finding / Telematics Trigger
                     </span>
                     <p className="text-slate-300">{dec.reason}</p>
                   </div>
 
                   <div className="rounded-xl border border-blue-500/20 bg-blue-950/20 p-3 space-y-1">
                     <span className="text-[11px] font-semibold text-blue-300 uppercase tracking-wider">
-                      Recommandation de l'Agent IA
+                      AI Agent Recommendation
                     </span>
                     <p className="text-blue-200">{dec.recommendation}</p>
                   </div>
@@ -271,8 +271,8 @@ export default function AIDecisionsPage() {
 
                 {/* Footer node info */}
                 <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-[11px] text-slate-500">
-                  <span>Réf fret : {dec.cargo_reference} • Nœud télécom : {dec.telecom_node}</span>
-                  <span>Généré le {new Date(dec.timestamp).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</span>
+                  <span>Cargo ref: {dec.cargo_reference} • Telecom node: {dec.telecom_node}</span>
+                  <span>Generated at {new Date(dec.timestamp).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}</span>
                 </div>
               </Card>
             ))}

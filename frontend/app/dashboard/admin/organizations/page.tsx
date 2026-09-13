@@ -41,7 +41,7 @@ export default function AdminOrganizations() {
       ...(filter ? { status: filter } : {}),
     })
       .then((d) => setOrgs(d.organizations))
-      .catch(() => notify("Impossible de charger les demandes.", "error"))
+      .catch(() => notify("Unable to load requests.", "error"))
       .finally(() => setLoading(false));
   }, [filter, notify]);
 
@@ -53,10 +53,10 @@ export default function AdminOrganizations() {
     setBusyId(org.id);
     try {
       await patch(`/admin/organizations/${org.id}/approve`);
-      notify(`${org.name} approuvée.`);
+      notify(`${org.name} approved.`);
       load();
     } catch (err) {
-      notify(err instanceof Error ? err.message : "Échec.", "error");
+      notify(err instanceof Error ? err.message : "Failed.", "error");
     } finally {
       setBusyId(null);
     }
@@ -69,27 +69,27 @@ export default function AdminOrganizations() {
       await patch(`/admin/organizations/${rejecting.id}/reject`, {
         rejection_reason: reason,
       });
-      notify(`${rejecting.name} rejetée.`);
+      notify(`${rejecting.name} rejected.`);
       setRejecting(null);
       setReason("");
       load();
     } catch (err) {
-      notify(err instanceof Error ? err.message : "Échec.", "error");
+      notify(err instanceof Error ? err.message : "Failed.", "error");
     } finally {
       setBusyId(null);
     }
   };
 
   const tabs: { key: Filter; label: string }[] = [
-    { key: "PENDING", label: "En attente" },
-    { key: "APPROVED", label: "Approuvées" },
-    { key: "REJECTED", label: "Rejetées" },
-    { key: "", label: "Toutes" },
+    { key: "PENDING", label: "Pending" },
+    { key: "APPROVED", label: "Approved" },
+    { key: "REJECTED", label: "Rejected" },
+    { key: "", label: "All" },
   ];
 
   return (
     <div>
-      <Topbar title="Entreprises" subtitle="Validation des demandes d'accès à Raased" onMenu={openMobileMenu} />
+      <Topbar title="Companies" subtitle="Validation of access requests to Raased" onMenu={openMobileMenu} />
       <div className="p-6">
         <div className="mb-5 flex flex-wrap gap-2">
           {tabs.map((t) => (
@@ -115,8 +115,8 @@ export default function AdminOrganizations() {
         ) : orgs.length === 0 ? (
           <EmptyState
             icon={<Building2 className="h-8 w-8" />}
-            title="Aucune demande"
-            description="Les nouvelles demandes d'entreprises apparaîtront ici."
+            title="No requests"
+            description="New company requests will appear here."
           />
         ) : (
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
@@ -134,7 +134,7 @@ export default function AdminOrganizations() {
                 </p>
                 {org.manager && (
                   <p className="mt-2 text-xs text-slate-400">
-                    Responsable : <b>{org.manager.first_name} {org.manager.last_name}</b>
+                    Manager: <b>{org.manager.first_name} {org.manager.last_name}</b>
                     {org.manager.job_title ? ` — ${org.manager.job_title}` : ""}
                   </p>
                 )}
@@ -143,7 +143,7 @@ export default function AdminOrganizations() {
                     onClick={() => router.push(`/dashboard/admin/organizations/${org.id}`)}
                     className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"
                   >
-                    <Eye className="h-3.5 w-3.5" /> Détails
+                    <Eye className="h-3.5 w-3.5" /> Details
                   </button>
                   {org.status === "PENDING" && (
                     <>
@@ -152,14 +152,14 @@ export default function AdminOrganizations() {
                         disabled={busyId === org.id}
                         className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-raased-teal px-3 py-2 text-xs font-semibold text-white hover:bg-raased-navy disabled:opacity-50"
                       >
-                        <Check className="h-3.5 w-3.5" /> Approuver
+                        <Check className="h-3.5 w-3.5" /> Approve
                       </button>
                       <button
                         onClick={() => setRejecting(org)}
                         disabled={busyId === org.id}
                         className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-raased-alert px-3 py-2 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50"
                       >
-                        <X className="h-3.5 w-3.5" /> Rejeter
+                        <X className="h-3.5 w-3.5" /> Reject
                       </button>
                     </>
                   )}
@@ -169,23 +169,23 @@ export default function AdminOrganizations() {
           </div>
         )}
 
-        <Modal open={Boolean(rejecting)} onClose={() => setRejecting(null)} title="Rejeter la demande">
+        <Modal open={Boolean(rejecting)} onClose={() => setRejecting(null)} title="Reject the request">
           <div className="space-y-4">
             <p className="text-sm text-slate-500">
-              Rejeter la demande de <b>{rejecting?.name}</b> ? Les managers associés seront désactivés.
+              Reject the request for <b>{rejecting?.name}</b>? Associated managers will be deactivated.
             </p>
             <Textarea
-              label="Motif du rejet"
+              label="Rejection reason"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder="Documents insuffisants, informations incomplètes…"
+              placeholder="Insufficient documents, incomplete information..."
             />
             <div className="flex justify-end gap-3">
               <Button variant="outline" onClick={() => setRejecting(null)}>
-                Annuler
+                Cancel
               </Button>
               <Button variant="danger" loading={busyId === rejecting?.id} onClick={reject}>
-                Confirmer le rejet
+                Confirm rejection
               </Button>
             </div>
           </div>

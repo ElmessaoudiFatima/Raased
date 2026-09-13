@@ -1,9 +1,9 @@
-﻿"""
+"""
 Pydantic schemas for Corridor management (manager-scoped).
 """
 import uuid
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 
 from pydantic import BaseModel
 
@@ -67,6 +67,7 @@ class CorridorOut(BaseModel):
     is_active: bool
     created_at: datetime
     updated_at: datetime
+    geometry: Optional[LineStringGeometry] = None  # GeoJSON LineString, populated by API layer
 
     class Config:
         from_attributes = True

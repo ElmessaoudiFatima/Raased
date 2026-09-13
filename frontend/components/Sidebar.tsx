@@ -88,6 +88,12 @@ const NAV: NavItem[] = [
     roles: ["MANAGER"],
   },
   {
+    href: "/dashboard/corridors",
+    label: "Corridors",
+    icon: <Building2 className="h-5 w-5" />,
+    roles: ["MANAGER"],
+  },
+  {
     href: "/dashboard/cargos",
     label: "Cargaisons",
     icon: <Boxes className="h-5 w-5" />,
@@ -111,6 +117,7 @@ const NAV: NavItem[] = [
     icon: <UserCog className="h-5 w-5" />,
     roles: ["MANAGER"],
   },
+  
 
   // DRIVER ROUTES
   {

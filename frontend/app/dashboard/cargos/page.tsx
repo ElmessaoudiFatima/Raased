@@ -64,15 +64,15 @@ export default function CargosPage() {
   });
 
   const load = () => {
-    get<{ cargos: CargoRow[] }>("/managers/cargos")
-      .then((d) => setCargos(d.cargos))
+    get<any>("/managers/cargos")
+      .then((d) => setCargos(Array.isArray(d) ? d : (d?.cargos ?? [])))
       .catch(() => notify("Impossible de charger les cargaisons.", "error"))
       .finally(() => setLoading(false));
-    get<{ trackers: TrackerRow[] }>("/managers/trackers")
-      .then((d) => setTrackers(d.trackers))
+    get<any>("/managers/trackers")
+      .then((d) => setTrackers(Array.isArray(d) ? d : (d?.trackers ?? [])))
       .catch(() => {});
-    get<{ drivers: { id: string; first_name: string; last_name: string; email: string }[] }>("/managers/drivers")
-      .then((d) => setDrivers(d.drivers))
+    get<any>("/managers/drivers")
+      .then((d) => setDrivers(Array.isArray(d) ? d : (d?.drivers ?? [])))
       .catch(() => {});
   };
 

@@ -1,148 +1,148 @@
-# Raased — Guide d'installation de la base de données 
+# Raased — Database Setup Guide
 
-Ce guide t'accompagne de zéro jusqu'à avoir toutes les tables de Raased créées
-dans ta base PostgreSQL locale, via SQLAlchemy + Alembic.
+This guide walks you from zero to having all of Raased's tables created
+in your local PostgreSQL database, via SQLAlchemy + Alembic.
 
 ---
 
-## 1. Installer PostgreSQL + PostGIS
+## 1. Install PostgreSQL + PostGIS
 
-### Si tu n'as pas encore PostgreSQL
+### If you don't have PostgreSQL yet
 
-1. Télécharge l'installeur Windows ici : https://www.postgresql.org/download/windows/
-2. Lance l'installeur, garde les options par défaut, retiens le **mot de passe** que tu donnes à l'utilisateur `postgres`.
-3. À la fin de l'installation, l'assistant propose de lancer **Stack Builder** — accepte.
-4. Dans Stack Builder, sélectionne ta version de PostgreSQL → catégorie **Spatial Extensions** → coche **PostGIS**. Installe-le.
+1. Download the Windows installer here: https://www.postgresql.org/download/windows/
+2. Run the installer, keep the default options, and remember the **password** you set for the `postgres` user.
+3. At the end of the installation, the wizard offers to launch **Stack Builder** — accept.
+4. In Stack Builder, select your PostgreSQL version → **Spatial Extensions** category → check **PostGIS**. Install it.
 
-### Si tu as déjà PostgreSQL mais pas PostGIS
+### If you already have PostgreSQL but not PostGIS
 
-Relance **Stack Builder** seul (cherche "Stack Builder" dans le menu Démarrer), sélectionne ta version de PostgreSQL installée, puis suis l'étape 4 ci-dessus.
+Relaunch **Stack Builder** on its own (search for "Stack Builder" in the Start menu), select your installed PostgreSQL version, then follow step 4 above.
 
-### Vérifie l'installation
+### Verify the installation
 
-Ouvre une invite de commande :
+Open a command prompt:
 ```powershell
 psql --version
 ```
-Si la commande n'est pas reconnue, ajoute le dossier `bin` de PostgreSQL (ex: `C:\Program Files\PostgreSQL\16\bin`) à ta variable d'environnement `PATH`, puis relance ton terminal.
+If the command isn't recognized, add the PostgreSQL `bin` folder (e.g. `C:\Program Files\PostgreSQL\16\bin`) to your `PATH` environment variable, then restart your terminal.
 
 ---
 
-## 2. Créer la base de données et l'utilisateur du projet
+## 2. Create the database and the project user
 
-Connecte-toi à PostgreSQL via pgAdmin
-(il te demande le mot de passe défini à l'installation)
+Connect to PostgreSQL via pgAdmin
+(it will ask for the password set during installation)
 
-Une fois connecter, exécute :
+Once connected, run:
 ```sql
 CREATE USER raased WITH PASSWORD 'raased';
 ```
-Ensuite : 
+Then:
 
 ```sql
 CREATE DATABASE raased OWNER raased;
 ```
-Et finalemnt active l'extension PostGIS ,exécute ça dans la base de données raased :
+And finally, enable the PostGIS extension by running this inside the `raased` database:
 ```sql
 CREATE EXTENSION postgis;
 ```
-> Adapte `raased`/`raased` (nom d'utilisateur/mot de passe) si tu préfères autre chose —
-> dans ce cas, garde bien la cohérence avec l'étape 5 (fichier `.env`).
+> Adapt `raased`/`raased` (username/password) if you prefer something else —
+> in that case, keep it consistent with step 5 (the `.env` file).
 
-## 3. Se placer dans le backend
+## 3. Move into the backend folder
 
 ```powershell
 cd backend
 ```
 ---
 
-## 4. Créer l'environnement virtuel Python et installer les dépendances
+## 4. Create the Python virtual environment and install dependencies
 
 ```powershell
 python -m venv .venv
 ```
 
-Active-le :
+Activate it:
 ```powershell
 .venv\Scripts\activate
 ```
 
-Installe les dépendances :
+Install the dependencies:
 ```powershell
 pip install -r requirements.txt
 ```
 
 ---
 
-## 5. Configurer le fichier `.env`
+## 5. Configure the `.env` file
 
-Copie le modèle :
+Copy the template:
 ```powershell
 copy .env.example .env
 ```
 
-Ouvre `.env` et vérifie/adapte cette ligne pour qu'elle corresponde à ton utilisateur/mot de passe/nom de base créés à l'étape 2 :
+Open `.env` and check/adapt this line so it matches the user/password/database name you created in step 2:
 ```
 DATABASE_URL=postgresql+asyncpg://raased:raased@localhost:5432/raased
 ```
 
-### Teste que la config se charge correctement
+### Test that the config loads correctly
 
 ```powershell
 python -c "from app.core.config import get_settings; print(get_settings().DATABASE_URL)"
 ```
-Ça doit afficher ton URL sans erreur d'import.
+It should print your URL with no import errors.
 
 ---
 
-## 6. Vérifier que la version de SQLAlchemy est compatible avec ta version de Python
+## 6. Check that your SQLAlchemy version is compatible with your Python version
 
-Si tu es sous **Python 3.13**, il faut SQLAlchemy ≥ 2.0.36 (une version antérieure plante avec les modèles qui utilisent des `relationship()`) :
+If you're on **Python 3.13**, you need SQLAlchemy ≥ 2.0.36 (an earlier version crashes with models that use `relationship()`):
 ```powershell
 pip install --upgrade "sqlalchemy>=2.0.36,<2.1.0"
 ```
 
 ---
 
-## 7. Configurer Alembic (déjà fait dans le repo — à vérifier seulement)
+## 7. Configure Alembic (already done in the repo — just verify)
 
-Le dossier `migrations/` doit déjà exister dans le repo, avec `migrations/env.py` déjà configuré pour :
-- importer `Base` depuis `app.db.base`
-- importer tous les modèles depuis `app.db.models` (pour qu'Alembic les détecte)
-- utiliser l'URL de `.env`, avec le driver `psycopg2` (sync) au lieu de `asyncpg` (async)
+The `migrations/` folder should already exist in the repo, with `migrations/env.py` already configured to:
+- import `Base` from `app.db.base`
+- import all models from `app.db.models` (so Alembic can detect them)
+- use the URL from `.env`, with the `psycopg2` driver (sync) instead of `asyncpg` (async)
 
-Si jamais `migrations/` n'existe pas encore chez toi (nouveau clone sans ce dossier committé), lance :
+If `migrations/` doesn't exist yet on your machine (new clone without this folder committed), run:
 ```powershell
 alembic init migrations
 ```
-puis demande à moi (fatima) le contenu à jour de `env.py`.
+then ask me (fatima) for the up-to-date content of `env.py`.
 
 ---
 
-## 8. Générer et appliquer les migrations
+## 8. Generate and apply migrations
 
-### Générer le fichier de migration (uniquement si tu modifies un modèle, ou pour la toute première fois si `migrations/versions/` est vide)
+### Generate the migration file (only if you modify a model, or for the very first time if `migrations/versions/` is empty)
 
 ```powershell
 alembic revision --autogenerate -m "initial schema"
 ```
 
-### ⚠️ Vérification manuelle obligatoire avant d'appliquer
+### ⚠️ Manual check required before applying
 
-Ouvre le fichier généré dans `migrations/versions/xxxxx_initial_schema.py` et vérifie/corrige ces deux points connus :
+Open the generated file at `migrations/versions/xxxxx_initial_schema.py` and check/fix these two known points:
 
-**a) Import manquant en haut du fichier** — ajoute si absent :
+**a) Missing import at the top of the file** — add it if missing:
 ```python
 import geoalchemy2
 ```
 
-**b) Ne jamais toucher à `spatial_ref_sys`** (table système PostGIS) :
-- Supprime la ligne `op.drop_table('spatial_ref_sys')` dans `upgrade()` si présente
-- Supprime le bloc `op.create_table('spatial_ref_sys', ...)` dans `downgrade()` si présent
+**b) Never touch `spatial_ref_sys`** (PostGIS system table):
+- Remove the `op.drop_table('spatial_ref_sys')` line in `upgrade()` if present
+- Remove the `op.create_table('spatial_ref_sys', ...)` block in `downgrade()` if present
 
-**c) Doublons d'index spatiaux** — GeoAlchemy2 crée automatiquement un index GiST dès qu'une colonne géométrique est créée. Si Alembic génère aussi des `op.create_index('idx_..._geometry', ...)` / `op.create_index('idx_..._location', ...)`, **supprime ces lignes en double** dans `upgrade()` ainsi que leurs `op.drop_index(...)` correspondants dans `downgrade()` — sinon tu auras une erreur `DuplicateTable`.
+**c) Duplicate spatial indexes** — GeoAlchemy2 automatically creates a GiST index as soon as a geometry column is created. If Alembic also generates `op.create_index('idx_..._geometry', ...)` / `op.create_index('idx_..._location', ...)` lines, **remove these duplicate lines** in `upgrade()` along with their corresponding `op.drop_index(...)` lines in `downgrade()` — otherwise you'll get a `DuplicateTable` error.
 
-### Appliquer la migration
+### Apply the migration
 
 ```powershell
 alembic upgrade head
@@ -150,28 +150,28 @@ alembic upgrade head
 
 ---
 
-## 9. Vérifier que tout est bien créé
+## 9. Verify that everything was created properly
 
 ```powershell
 psql -U raased -d raased -c "\dt"
 ```
 
-Tu dois voir la liste de toutes les tables du projet, plus `alembic_version` (table de suivi Alembic) et `spatial_ref_sys` (table système PostGIS, propriétaire `postgres`).
+You should see the list of all the project's tables, plus `alembic_version` (Alembic's tracking table) and `spatial_ref_sys` (PostGIS system table, owned by `postgres`).
 
 ---
 
-## Pour la suite : à chaque modification d'un modèle
+## Going forward: every time you modify a model
 
-1. Modifie le fichier dans `app/db/models/`
-2. Génère une nouvelle migration :
+1. Edit the file in `app/db/models/`
+2. Generate a new migration:
    ```powershell
-   alembic revision --autogenerate -m "description du changement"
+   alembic revision --autogenerate -m "description of the change"
    ```
-3. **Relis toujours le fichier généré** (points a/b/c de l'étape 8)
-4. Applique :
+3. **Always re-read the generated file** (points a/b/c from step 8)
+4. Apply it:
    ```powershell
    alembic upgrade head
    ```
-5. Commit et push le fichier de migration généré (`migrations/versions/...py`) — c'est ce fichier que le reste de l'équipe va exécuter avec `alembic upgrade head` pour rester synchronisé.
+5. Commit and push the generated migration file (`migrations/versions/...py`) — this is the file the rest of the team will run with `alembic upgrade head` to stay in sync.
 
 ---
